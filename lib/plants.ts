@@ -1,6 +1,7 @@
+import { factsFor } from "./plant-facts";
 import type { PlantRecord } from "./types";
 
-export const PLANTS: PlantRecord[] = [
+const RAW_PLANTS: Array<Omit<PlantRecord, "width" | "hardinessC" | "bloomMonths" | "badges">> = [
   {
     id: "lawenda-waskolistna",
     polishName: "Lawenda wąskolistna",
@@ -1619,3 +1620,8 @@ export const PLANTS: PlantRecord[] = [
       "Wysoka roślina o szerokich, czasem bordowych liściach i jaskrawych kwiatach, do słonecznych rabat i dużych donic. Pije dużo wody i lubi żyzną ziemię. W gruncie nie zimuje — po przymrozku wykop kłącza i trzymaj je w chłodzie do wiosny.",
   },
 ];
+
+export const PLANTS: PlantRecord[] = RAW_PLANTS.map((plant) => ({
+  ...plant,
+  ...factsFor(plant.id),
+}));

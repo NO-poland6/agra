@@ -21,6 +21,14 @@ export type PlantInfo = {
   frostDetail: string;
   plantType: string;
   height: string;
+  /** Szerokość dorosłej rośliny, np. "40–50 cm". Pusty string, gdy nieznana. */
+  width: string;
+  /** Skrót mrozoodporności, np. "−20 °C". Pusty string, gdy nieznany. */
+  hardinessC: string;
+  /** Miesiące kwitnienia albo ozdoby, 1–12. Pusta tablica, gdy nieznane. */
+  bloomMonths: number[];
+  /** Krótkie cechy, np. "miododajna". */
+  badges: string[];
 };
 
 export type PlantRecord = PlantInfo & {

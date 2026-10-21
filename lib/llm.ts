@@ -21,6 +21,10 @@ Zwróć wyłącznie jeden obiekt JSON, bez markdown i bez komentarza, o kluczach
 - frostDetail: string, np. "mrozoodporna do ok. -25 °C (strefa USDA 5)"
 - plantType: string, np. "bylina", "krzew", "iglaki", "drzewo owocowe", "roślina balkonowa", "roślina doniczkowa", "zioło"
 - height: string, np. "40–60 cm"; pusty string, jeśli nieznana
+- width: string, szerokość dorosłej rośliny, np. "40–50 cm"; pusty string, jeśli nieznana
+- hardinessC: string, krótko, np. "−20 °C"; pusty string, jeśli roślina nie zimuje w gruncie albo liczba jest nieznana
+- bloomMonths: tablica liczb 1–12 (miesiące kwitnienia albo głównej ozdoby); pusta tablica, jeśli nie kwitnie albo nie wiadomo
+- badges: tablica do czterech krótkich cech po polsku, tylko gdy pasują, z listy: "miododajna", "zimozielona", "do pojemników", "jadalna", "przyciąga motyle", "trująca dla zwierząt", "pachnąca", "okrywowa", "na żywopłot", "na kwiat cięty", "odporna na suszę", "do wnętrz"
 Pisz rzeczowo, bez wykrzykników i bez obietnic w rodzaju „idealna do każdego ogrodu”. Nie podawaj ceny i nie dodawaj innych kluczy. Gdy nazwa jest niejednoznaczna, wybierz gatunek najczęściej sprzedawany w polskich szkółkach i doprecyzuj go w polishName. Nie wymyślaj nazwy odmiany, jeśli jej nie podano.`;
 
 export function resolveLlmConfig(env: Record<string, string | undefined>): LlmConfig | null {

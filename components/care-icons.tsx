@@ -118,3 +118,14 @@ export function FrostIcon({ frost }: { frost: FrostLabel }) {
     </svg>
   );
 }
+
+export function SizeIcon() {
+  return (
+    <svg viewBox="0 0 48 48" className="shelf-pictogram" aria-hidden>
+      <g fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M24 6 v28 M24 6 l-4 5 M24 6 l4 5 M24 34 l-4-5 M24 34 l4-5" />
+        <path d="M8 40 h32 M8 40 l5-4 M8 40 l5 4 M40 40 l-5-4 M40 40 l-5 4" />
+      </g>
+    </svg>
+  );
+}

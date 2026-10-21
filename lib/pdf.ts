@@ -1,6 +1,7 @@
 import { fileSlug } from "./normalize";
 import { formatPriceParts } from "./format";
-import { FROST_CAPTION, LIGHT_LABEL, WATERING_LABEL, dropsFor } from "./labels";
+import { FROST_CAPTION, LIGHT_LABEL, WATERING_LABEL } from "./labels";
+import { MONTH_ROMAN, plantInfoUrl, sizeLabel } from "./shelf";
 import type { CardModel } from "./types";
 
 const MM = 72 / 25.4;
@@ -128,6 +129,7 @@ function drawCard(
   page: import("pdf-lib").PDFPage,
   card: CardModel,
   photo: import("pdf-lib").PDFImage | null,
+  qr: import("pdf-lib").PDFImage | null,
   x: number,
   y: number,
   fonts: Fonts,
@@ -145,61 +147,61 @@ function drawCard(
     borderWidth: 1.1,
     color: rgb(0.984, 0.973, 0.949),
   });
-  page.drawRectangle({
-    x: x + mm(5.5),
-    y: y + mm(5.5),
-    width: width - mm(11),
-    height: height - mm(11),
-    borderColor: ink,
-    borderWidth: 0.7,
-  });
 
-  const left = x + mm(9);
-  const right = x + width - mm(9);
+  const left = x + mm(7.5);
+  const right = x + width - mm(7.5);
   const contentWidth = right - left;
-  let cursor = y + height - mm(12);
+  const headerTop = y + height - mm(7.2);
 
-  const brandSize = 8.5;
   page.drawText("AGRA PSK", {
     x: left,
-    y: cursor,
-    size: brandSize,
+    y: headerTop - mm(3.4),
+    size: 11,
     font: fonts.bold,
     color: ink,
   });
-  const city = "KŁODZKO";
-  page.drawText(city, {
-    x: right - fonts.bold.widthOfTextAtSize(city, brandSize),
-    y: cursor,
-    size: brandSize,
-    font: fonts.bold,
+  page.drawText("Kłodzko · od 1991 r.", {
+    x: left,
+    y: headerTop - mm(7.4),
+    size: 8,
+    font: fonts.semibold,
     color: ink,
   });
-  cursor -= mm(2.2);
-  page.drawLine({
-    start: { x: left, y: cursor },
-    end: { x: right, y: cursor },
-    thickness: 0.8,
-    color: ink,
-  });
-  cursor -= mm(3);
 
+  let ruleY = headerTop - mm(10.2);
+  if (qr) {
+    const qrSize = mm(14);
+    const qrX = right - qrSize;
+    const qrY = headerTop - qrSize + mm(1);
+    page.drawImage(qr, { x: qrX, y: qrY, width: qrSize, height: qrSize });
+    const wiki = "Wikipedia";
+    const wikiWidth = fonts.semibold.widthOfTextAtSize(wiki, 6);
+    page.drawText(wiki, {
+      x: qrX + (qrSize - wikiWidth) / 2,
+      y: qrY - mm(2.8),
+      size: 6,
+      font: fonts.semibold,
+      color: ink,
+    });
+    ruleY = qrY - mm(5.2);
+  }
+  page.drawLine({
+    start: { x: left, y: ruleY },
+    end: { x: right, y: ruleY },
+    thickness: 1.5,
+    color: ink,
+  });
+
+  let cursor = ruleY - mm(2.4);
   if (photo) {
     const boxW = contentWidth;
-    const boxH = mm(card.photoCredit ? 34 : 42);
+    const boxH = mm(card.photoCredit ? 32 : 36);
     const scale = Math.max(boxW / photo.width, boxH / photo.height);
     const drawW = photo.width * scale;
     const drawH = photo.height * scale;
     const imageX = left + (boxW - drawW) * 0.5;
     const imageY = cursor - (boxH - drawH) * 0.42 - drawH;
     const boxBottom = cursor - boxH;
-    page.drawRectangle({
-      x: left,
-      y: boxBottom,
-      width: boxW,
-      height: boxH,
-      color: rgb(0.984, 0.973, 0.949),
-    });
     const { pushGraphicsState, popGraphicsState, rectangle, clip, endPath } = requireClip();
     page.pushOperators(pushGraphicsState(), rectangle(left, boxBottom, boxW, boxH), clip(), endPath());
     page.drawImage(photo, { x: imageX, y: imageY, width: drawW, height: drawH });
@@ -212,10 +214,10 @@ function drawCard(
       borderColor: ink,
       borderWidth: 0.7,
     });
-    cursor -= boxH;
+    cursor = boxBottom;
     if (card.photoCredit) {
-      const creditSize = 6.5;
-      cursor -= mm(3.1);
+      const creditSize = 6.2;
+      cursor -= mm(3);
       const line = fitLine(card.photoCredit, fonts.regular, creditSize, contentWidth);
       const lineWidth = fonts.regular.widthOfTextAtSize(line, creditSize);
       page.drawText(line, {
@@ -225,79 +227,75 @@ function drawCard(
         font: fonts.regular,
         color: ink,
       });
-      cursor -= mm(2);
+      cursor -= mm(1.6);
     } else {
-      cursor -= mm(3);
+      cursor -= mm(2.2);
     }
   }
 
-  const nameSize = card.polishName.length > 28 ? 16 : 20;
+  const nameSize = (card.polishName || "").length > 24 ? 15 : 18;
   const nameLines = wrap(card.polishName || "Nazwa rośliny", fonts.display, nameSize, contentWidth).slice(0, 2);
   for (const line of nameLines) {
-    cursor -= nameSize * 0.92;
+    cursor -= nameSize * 0.86;
     page.drawText(line, { x: left, y: cursor, size: nameSize, font: fonts.display, color: ink });
-    cursor -= mm(1.1);
-  }
-  if (card.latinName) {
-    cursor -= 11;
-    const latin = wrap(card.latinName, fonts.displayItalic, 11, contentWidth)[0] ?? card.latinName;
-    page.drawText(latin, { x: left, y: cursor, size: 11, font: fonts.displayItalic, color: ink });
-    cursor -= mm(2.4);
-  } else {
-    cursor -= mm(2);
+    cursor -= mm(0.6);
   }
 
-  const priceBottom = y + mm(16);
-  const reservedTop = priceBottom + mm(18) + mm(22) + (card.frostDetail ? mm(8) : 0) + mm(6);
-  const descSize = card.photoDataUrl ? 9.5 : 10.5;
-  const descLeading = descSize + 3.2;
-  const descLines = wrap(card.description, fonts.regular, descSize, contentWidth);
+  const latinSize = 10;
+  cursor -= latinSize * 0.35 + mm(1.2);
+  if (card.latinName) {
+    const latin = fitLine(card.latinName, fonts.displayItalic, latinSize, contentWidth);
+    page.drawText(latin, { x: left, y: cursor, size: latinSize, font: fonts.displayItalic, color: ink });
+  }
+  cursor -= mm(1.4);
+
+  if (card.plantType) {
+    const type = card.plantType.toLocaleUpperCase("pl");
+    cursor -= mm(3.2);
+    page.drawText(fitLine(type, fonts.semibold, 7.5, contentWidth), {
+      x: left,
+      y: cursor,
+      size: 7.5,
+      font: fonts.semibold,
+      color: ink,
+    });
+    cursor -= mm(1.6);
+  }
+
+  cursor = drawBadges(page, card, left, right, cursor, fonts, ink);
+  cursor = drawFacts(page, card, left, contentWidth, cursor, fonts, ink);
+  cursor = drawMonths(page, card, left, contentWidth, cursor, fonts, ink, rgb);
+
+  const priceHeight = mm(16);
+  const priceBottom = y + mm(12.5);
+  const descSize = 9;
+  const descLeading = 11.5;
+  const descLines = wrap(card.description || "", fonts.regular, descSize, contentWidth).slice(0, 2);
+  const descFloor = priceBottom + priceHeight + mm(2.4);
   for (const line of descLines) {
-    if (cursor - descLeading < reservedTop) break;
+    if (cursor - descLeading < descFloor) break;
     cursor -= descLeading;
     page.drawText(line, { x: left, y: cursor, size: descSize, font: fonts.regular, color: ink });
   }
 
-  const meta = [card.plantType, card.height].filter(Boolean).join(" · ");
-  if (meta) {
-    cursor -= mm(5);
-    page.drawText(meta, { x: left, y: cursor, size: 9, font: fonts.semibold, color: ink });
-  }
-
-  cursor -= mm(4);
-  const iconTop = cursor;
-  const col = contentWidth / 3;
-  drawWater(page, left + col * 0.5, iconTop, card, fonts, ink);
-  drawLight(page, left + col * 1.5, iconTop, card, fonts, ink);
-  drawFrost(page, left + col * 2.5, iconTop, card, fonts, ink);
-  cursor = iconTop - mm(20);
-  if (card.frostDetail) {
-    const detail = wrap(card.frostDetail, fonts.regular, 8, contentWidth).slice(0, 2);
-    for (const line of detail) {
-      const lineWidth = fonts.regular.widthOfTextAtSize(line, 8);
-      cursor -= 10;
-      page.drawText(line, { x: left + (contentWidth - lineWidth) / 2, y: cursor, size: 8, font: fonts.regular, color: ink });
-    }
-  }
-
-  const priceHeight = mm(16);
   page.drawRectangle({
     x: left,
     y: priceBottom,
     width: contentWidth,
     height: priceHeight,
     borderColor: ink,
-    borderWidth: 1.6,
+    borderWidth: mm(0.7),
+    color: rgb(0.953, 0.886, 0.643),
   });
   const { amount, currency } = formatPriceParts(card.price);
-  const amountSize = amount.replace(/\s/g, "").length > 6 ? 22 : 28;
+  const amountSize = amount.replace(/\s/g, "").length > 6 ? 26 : 32;
   const amountWidth = fonts.display.widthOfTextAtSize(amount, amountSize);
   const currencySize = 13;
   const currencyWidth = fonts.bold.widthOfTextAtSize(currency, currencySize);
   const gap = mm(2);
   const total = amountWidth + gap + currencyWidth;
   const priceX = left + (contentWidth - total) / 2;
-  const priceBaseline = priceBottom + mm(4.2);
+  const priceBaseline = priceBottom + mm(4.4);
   page.drawText(amount, {
     x: priceX,
     y: priceBaseline,
@@ -307,21 +305,152 @@ function drawCard(
   });
   page.drawText(currency, {
     x: priceX + amountWidth + gap,
-    y: priceBaseline + mm(1.2),
+    y: priceBaseline + mm(1.4),
     size: currencySize,
     font: fonts.bold,
     color: ink,
   });
 
-  const footer = "AGRA PSK Kłodzko – od 1991 r.";
+  const footer = "AGRA PSK · Kłodzko · od 1991 r.";
   const footerWidth = fonts.semibold.widthOfTextAtSize(footer, 8);
   page.drawText(footer, {
     x: left + (contentWidth - footerWidth) / 2,
-    y: y + mm(8.2),
+    y: y + mm(6.4),
     size: 8,
     font: fonts.semibold,
     color: ink,
   });
+}
+
+function drawBadges(
+  page: import("pdf-lib").PDFPage,
+  card: CardModel,
+  left: number,
+  right: number,
+  cursor: number,
+  fonts: Fonts,
+  ink: ReturnType<typeof import("pdf-lib").rgb>,
+) {
+  const badges = (card.badges ?? []).map((badge) => badge.trim()).filter(Boolean).slice(0, 3);
+  if (badges.length === 0) return cursor - mm(1);
+  const size = 8;
+  const padX = mm(1.5);
+  const height = mm(5);
+  const gap = mm(1.3);
+  const bottom = cursor - height - mm(0.6);
+  let badgeX = left;
+  for (const badge of badges) {
+    const textWidth = fonts.semibold.widthOfTextAtSize(badge, size);
+    const pillWidth = textWidth + padX * 2;
+    if (badgeX + pillWidth > right + 1) break;
+    page.drawRectangle({
+      x: badgeX,
+      y: bottom,
+      width: pillWidth,
+      height,
+      borderColor: ink,
+      borderWidth: 0.7,
+    });
+    page.drawText(badge, {
+      x: badgeX + padX,
+      y: bottom + mm(1.45),
+      size,
+      font: fonts.semibold,
+      color: ink,
+    });
+    badgeX += pillWidth + gap;
+  }
+  return bottom - mm(2.2);
+}
+
+function drawFacts(
+  page: import("pdf-lib").PDFPage,
+  card: CardModel,
+  left: number,
+  contentWidth: number,
+  cursor: number,
+  fonts: Fonts,
+  ink: ReturnType<typeof import("pdf-lib").rgb>,
+) {
+  const facts: [string, string][] = [
+    ["Światło", LIGHT_LABEL[card.light]],
+    ["Woda", WATERING_LABEL[card.watering]],
+    ["Mróz", card.hardinessC?.trim() || FROST_CAPTION[card.frostLabel]],
+    ["Wys. × szer.", sizeLabel(card.height ?? "", card.width ?? "")],
+  ];
+  const column = contentWidth / facts.length;
+  const valueSize = 8;
+  const labelSize = 6.5;
+  facts.forEach(([label, value], index) => {
+    const center = left + column * index + column / 2;
+    const shown = fitLine(value, fonts.bold, valueSize, column - mm(1.2));
+    const valueWidth = fonts.bold.widthOfTextAtSize(shown, valueSize);
+    page.drawText(shown, {
+      x: center - valueWidth / 2,
+      y: cursor - mm(3.2),
+      size: valueSize,
+      font: fonts.bold,
+      color: ink,
+    });
+    const labelWidth = fonts.semibold.widthOfTextAtSize(label, labelSize);
+    page.drawText(label, {
+      x: center - labelWidth / 2,
+      y: cursor - mm(7.2),
+      size: labelSize,
+      font: fonts.semibold,
+      color: ink,
+    });
+  });
+  return cursor - mm(10);
+}
+
+function drawMonths(
+  page: import("pdf-lib").PDFPage,
+  card: CardModel,
+  left: number,
+  contentWidth: number,
+  cursor: number,
+  fonts: Fonts,
+  ink: ReturnType<typeof import("pdf-lib").rgb>,
+  rgb: typeof import("pdf-lib").rgb,
+) {
+  const active = new Set(card.bloomMonths ?? []);
+  const gap = mm(0.55);
+  const boxWidth = (contentWidth - gap * 11) / 12;
+  const boxHeight = mm(5.6);
+  const bottom = cursor - boxHeight;
+  const sage = rgb(0.843, 0.894, 0.784);
+  MONTH_ROMAN.forEach((label, index) => {
+    const boxX = left + index * (boxWidth + gap);
+    page.drawRectangle({
+      x: boxX,
+      y: bottom,
+      width: boxWidth,
+      height: boxHeight,
+      borderColor: ink,
+      borderWidth: 0.6,
+      color: active.has(index + 1) ? sage : rgb(1, 1, 1),
+    });
+    const size = label.length > 2 ? 5.4 : 6.4;
+    const textWidth = fonts.bold.widthOfTextAtSize(label, size);
+    page.drawText(label, {
+      x: boxX + (boxWidth - textWidth) / 2,
+      y: bottom + mm(1.55),
+      size,
+      font: fonts.bold,
+      color: ink,
+    });
+  });
+  const caption = active.size > 0 ? "kwitnienie albo główna ozdoba" : "miesiące ozdoby niepodane";
+  const captionWidth = fonts.regular.widthOfTextAtSize(caption, 6.5);
+  page.drawText(caption, {
+    x: left + (contentWidth - captionWidth) / 2,
+    y: bottom - mm(3.2),
+    size: 6.5,
+    font: fonts.regular,
+    color: ink,
+  });
+  return bottom - mm(5);
 }
 
 function requireRgb() {
@@ -346,151 +475,6 @@ const clipHolder: { ops: ClipOps | null } = { ops: null };
 function requireClip(): ClipOps {
   if (!clipHolder.ops) throw new Error("PDF nie jest gotowe");
   return clipHolder.ops;
-}
-
-function drawWater(
-  page: import("pdf-lib").PDFPage,
-  center: number,
-  top: number,
-  card: CardModel,
-  fonts: Fonts,
-  ink: ReturnType<typeof import("pdf-lib").rgb>,
-) {
-  const level = dropsFor(card.watering);
-  for (let index = 0; index < 3; index += 1) {
-    const cx = center - mm(7) + index * mm(7);
-    page.drawEllipse({
-      x: cx,
-      y: top - mm(4.5),
-      xScale: mm(1.7),
-      yScale: mm(2.4),
-      borderColor: ink,
-      borderWidth: 0.8,
-      color: index < level ? ink : undefined,
-    });
-  }
-  labelUnder(page, center, top - mm(9), WATERING_LABEL[card.watering], "PODLEWANIE", fonts, ink);
-}
-
-function drawLight(
-  page: import("pdf-lib").PDFPage,
-  center: number,
-  top: number,
-  card: CardModel,
-  fonts: Fonts,
-  ink: ReturnType<typeof import("pdf-lib").rgb>,
-) {
-  const y = top - mm(4.5);
-  if (card.light === "shade") {
-    page.drawEllipse({
-      x: center,
-      y,
-      xScale: mm(6),
-      yScale: mm(3.2),
-      borderColor: ink,
-      borderWidth: 0.9,
-    });
-  } else {
-    page.drawCircle({ x: center, y, size: mm(2.3), borderColor: ink, borderWidth: 0.9, color: card.light === "sun" ? ink : undefined });
-    if (card.light === "partial") {
-      page.drawCircle({ x: center - mm(0.7), y, size: mm(1.5), color: ink });
-    }
-    for (let i = 0; i < 8; i += 1) {
-      const angle = (Math.PI / 4) * i;
-      page.drawLine({
-        start: { x: center + Math.cos(angle) * mm(3.2), y: y + Math.sin(angle) * mm(3.2) },
-        end: { x: center + Math.cos(angle) * mm(4.6), y: y + Math.sin(angle) * mm(4.6) },
-        thickness: 0.8,
-        color: ink,
-      });
-    }
-  }
-  labelUnder(page, center, top - mm(9), LIGHT_LABEL[card.light], "STANOWISKO", fonts, ink);
-}
-
-function drawFrost(
-  page: import("pdf-lib").PDFPage,
-  center: number,
-  top: number,
-  card: CardModel,
-  fonts: Fonts,
-  ink: ReturnType<typeof import("pdf-lib").rgb>,
-) {
-  const y = top - mm(4.2);
-  if (card.frostLabel === "nie zimuje w gruncie") {
-    page.drawRectangle({
-      x: center - mm(4),
-      y: y - mm(3.2),
-      width: mm(8),
-      height: mm(4.2),
-      borderColor: ink,
-      borderWidth: 0.9,
-    });
-    page.drawLine({
-      start: { x: center - mm(5), y: y + mm(1.2) },
-      end: { x: center + mm(5), y: y + mm(1.2) },
-      thickness: 1,
-      color: ink,
-    });
-  } else if (card.frostLabel === "wymaga okrycia") {
-    page.drawRectangle({
-      x: center - mm(1.3),
-      y: y - mm(1),
-      width: mm(2.6),
-      height: mm(6),
-      borderColor: ink,
-      borderWidth: 0.8,
-    });
-    page.drawCircle({ x: center, y: y - mm(2.4), size: mm(2.1), borderColor: ink, borderWidth: 0.8 });
-  } else {
-    for (let i = 0; i < 3; i += 1) {
-      const angle = (Math.PI / 3) * i;
-      page.drawLine({
-        start: { x: center - Math.cos(angle) * mm(4.2), y: y - Math.sin(angle) * mm(4.2) },
-        end: { x: center + Math.cos(angle) * mm(4.2), y: y + Math.sin(angle) * mm(4.2) },
-        thickness: 0.9,
-        color: ink,
-      });
-    }
-  }
-  const caption = FROST_CAPTION[card.frostLabel];
-  const lines = wrap(caption, fonts.bold, 8, mm(40)).slice(0, 2);
-  let textY = top - mm(9.5);
-  for (const line of lines) {
-    const lineWidth = fonts.bold.widthOfTextAtSize(line, 8);
-    page.drawText(line, { x: center - lineWidth / 2, y: textY, size: 8, font: fonts.bold, color: ink });
-    textY -= 10;
-  }
-  const label = "ZIMA";
-  const labelWidth = fonts.semibold.widthOfTextAtSize(label, 7);
-  page.drawText(label, {
-    x: center - labelWidth / 2,
-    y: textY - 1,
-    size: 7,
-    font: fonts.semibold,
-    color: ink,
-  });
-}
-
-function labelUnder(
-  page: import("pdf-lib").PDFPage,
-  center: number,
-  y: number,
-  value: string,
-  label: string,
-  fonts: Fonts,
-  ink: ReturnType<typeof import("pdf-lib").rgb>,
-) {
-  const valueWidth = fonts.bold.widthOfTextAtSize(value, 8.5);
-  page.drawText(value, { x: center - valueWidth / 2, y, size: 8.5, font: fonts.bold, color: ink });
-  const labelWidth = fonts.semibold.widthOfTextAtSize(label, 7);
-  page.drawText(label, {
-    x: center - labelWidth / 2,
-    y: y - 11,
-    size: 7,
-    font: fonts.semibold,
-    color: ink,
-  });
 }
 
 export async function downloadCardPdf(card: CardModel, mode: "a5" | "a4") {
@@ -518,13 +502,26 @@ export async function downloadCardPdf(card: CardModel, mode: "a5" | "a4") {
     displayItalic: await pdf.embedFont(displayItalic, { subset: true }),
   };
   const photo = await embedPhoto(pdf, card.photoDataUrl);
+  const infoUrl = plantInfoUrl(card.latinName, card.polishName);
+  let qr: import("pdf-lib").PDFImage | null = null;
+  if (infoUrl) {
+    const dataUrl = await import("qrcode").then((QRCode) =>
+      QRCode.toDataURL(infoUrl, {
+        margin: 0,
+        width: 180,
+        errorCorrectionLevel: "M",
+        color: { dark: "#1b2418", light: "#ffffff" },
+      }),
+    );
+    qr = await embedPhoto(pdf, dataUrl);
+  }
   if (mode === "a5") {
     const page = pdf.addPage([mm(148), mm(210)]);
-    drawCard(page, card, photo, 0, 0, fonts);
+    drawCard(page, card, photo, qr, 0, 0, fonts);
   } else {
     const page = pdf.addPage([mm(297), mm(210)]);
-    drawCard(page, card, photo, 0, 0, fonts);
-    drawCard(page, card, photo, mm(149), 0, fonts);
+    drawCard(page, card, photo, qr, 0, 0, fonts);
+    drawCard(page, card, photo, qr, mm(149), 0, fonts);
     page.drawLine({
       start: { x: mm(148.5), y: mm(6) },
       end: { x: mm(148.5), y: mm(204) },

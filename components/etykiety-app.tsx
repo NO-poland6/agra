@@ -32,6 +32,7 @@ import { parsePrice } from "@/lib/format";
 import { FROST_ITEMS, LIGHT_ITEMS, WATERING_ITEMS } from "@/lib/labels";
 import { findPlantById, interpretMatches, searchPlants, type MatchHit } from "@/lib/match";
 import { normalize } from "@/lib/normalize";
+import { BADGE_SUGGESTIONS, MONTH_ROMAN, parseBadges, withPlantDefaults } from "@/lib/shelf";
 import { buildGeneratePayload } from "@/lib/plant-query";
 import { isPhotoCandidate, photoProxyUrl, type PhotoCandidate } from "@/lib/photos";
 import { PLANTS } from "@/lib/plants";
@@ -55,6 +56,10 @@ function toInfo(plant: PlantRecord): PlantInfo {
     frostDetail: plant.frostDetail,
     plantType: plant.plantType,
     height: plant.height,
+    width: plant.width,
+    hardinessC: plant.hardinessC,
+    bloomMonths: plant.bloomMonths,
+    badges: plant.badges,
   };
 }
 
@@ -116,7 +121,7 @@ export function EtykietyApp() {
       if (cancelled) return;
       setRecent(readRecent());
       if (draft?.info) {
-        setInfo(draft.info);
+        setInfo(withPlantDefaults(draft.info));
         setPolishName(draft.polishName);
         setLatinName(draft.latinName);
         setPriceInput(draft.priceInput);
@@ -315,18 +320,19 @@ export function EtykietyApp() {
   }
 
   function apply(plant: PlantInfo, nextSource: SourceKind, nextNotice: string, priceValue: number) {
-    setInfo(plant);
+    const ready = withPlantDefaults(plant);
+    setInfo(ready);
     setPolishName(plant.polishName);
     setLatinName(plant.latinName);
     setSource(nextSource);
     setNotice(nextNotice);
     setChoices(null);
     setError(null);
-    baseline.current = JSON.stringify(plant);
-    writeRecent(plant, priceValue);
+    baseline.current = JSON.stringify(ready);
+    writeRecent(ready, priceValue);
     setRecent(readRecent());
     setPreview("a5");
-    void startPhotoSearch(plant);
+    void startPhotoSearch(ready);
   }
 
   function openManual(names: { polishName: string; latinName: string }, message: string, priceValue: number) {
@@ -340,6 +346,10 @@ export function EtykietyApp() {
       frostDetail: "",
       plantType: "",
       height: "",
+      width: "",
+      hardinessC: "",
+      bloomMonths: [],
+      badges: [],
     };
     apply(plant, "manual", message, priceValue);
   }
@@ -515,7 +525,7 @@ export function EtykietyApp() {
 
   function loadRecent(entry: RecentEntry) {
     setPriceInput(formatPrice(entry.price).replace(/\s*zł\s*$/u, "").trim());
-    apply(entry.info, "cache", "Wczytano ostatnią etykietę z tej przeglądarki.", entry.price);
+    apply(withPlantDefaults(entry.info), "cache", "Wczytano ostatnią etykietę z tej przeglądarki.", entry.price);
   }
 
   const catalogPlant = info
@@ -770,9 +780,67 @@ export function EtykietyApp() {
                 </Field>
                 {clipped ? (
                   <p className="text-sm text-destructive">
-                    Opis nie mieści się na karcie i zostanie ucięty. Skróć go o zdanie albo zdejmij zdjęcie.
+                    Opis ma więcej niż dwie linijki i na karcie zostanie skrócony.
                   </p>
                 ) : null}
+                <div className="grid gap-2">
+                  <p className="text-sm font-medium">Miesiące kwitnienia</p>
+                  <div className="flex flex-wrap gap-1">
+                    {MONTH_ROMAN.map((label, index) => {
+                      const month = index + 1;
+                      const on = info.bloomMonths.includes(month);
+                      return (
+                        <button
+                          key={label}
+                          type="button"
+                          aria-pressed={on}
+                          className={
+                            on
+                              ? "h-8 min-w-8 rounded-md bg-primary px-1.5 text-xs font-semibold text-primary-foreground"
+                              : "h-8 min-w-8 rounded-md border border-border bg-background px-1.5 text-xs"
+                          }
+                          onClick={() => {
+                            const bloomMonths = on
+                              ? info.bloomMonths.filter((item) => item !== month)
+                              : [...info.bloomMonths, month].sort((left, right) => left - right);
+                            patch({ bloomMonths });
+                          }}
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <Field label="Cechy" htmlFor="edit-cechy" hint="Krótkie plakietki, oddzielone przecinkami.">
+                  <Input
+                    id="edit-cechy"
+                    className="h-10 bg-background"
+                    value={info.badges.join(", ")}
+                    onChange={(event) => patch({ badges: parseBadges(event.target.value) })}
+                  />
+                </Field>
+                <div className="flex flex-wrap gap-1">
+                  {BADGE_SUGGESTIONS.map((badge) => {
+                    const on = info.badges.some((item) => item.toLocaleLowerCase("pl") === badge);
+                    return (
+                      <button
+                        key={badge}
+                        type="button"
+                        className="rounded-full border border-border px-2 py-1 text-xs hover:bg-accent"
+                        aria-pressed={on}
+                        onClick={() => {
+                          const badges = on
+                            ? info.badges.filter((item) => item.toLocaleLowerCase("pl") !== badge)
+                            : parseBadges([...info.badges, badge].join(", "));
+                          patch({ badges });
+                        }}
+                      >
+                        {badge}
+                      </button>
+                    );
+                  })}
+                </div>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <Field label="Typ rośliny" htmlFor="edit-typ">
                     <Input
@@ -788,6 +856,22 @@ export function EtykietyApp() {
                       className="h-10 bg-background"
                       value={info.height}
                       onChange={(event) => patch({ height: event.target.value })}
+                    />
+                  </Field>
+                  <Field label="Szerokość" htmlFor="edit-szerokosc">
+                    <Input
+                      id="edit-szerokosc"
+                      className="h-10 bg-background"
+                      value={info.width}
+                      onChange={(event) => patch({ width: event.target.value })}
+                    />
+                  </Field>
+                  <Field label="Mróz, skrót" htmlFor="edit-mroz" hint="Na przykład −20 °C. Puste, gdy nie znasz liczby.">
+                    <Input
+                      id="edit-mroz"
+                      className="h-10 bg-background"
+                      value={info.hardinessC}
+                      onChange={(event) => patch({ hardinessC: event.target.value })}
                     />
                   </Field>
                 </div>
