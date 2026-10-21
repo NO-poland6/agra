@@ -55,18 +55,26 @@ Klucz czytają tylko trasy serwerowe `app/api/generate` i `app/api/status`. Nie 
 
 ## Wdrożenie na Vercel
 
-1. Wypchnij to repozytorium na publiczny Git (GitHub, GitLab albo podobny). W repozytorium nie commituj `.env.local` ani żadnego pliku z kluczem. Wzorzec `.env.example` jest pusty i może zostać.
-2. Na [vercel.com](https://vercel.com) wybierz **Add New… → Project** i wskaż repozytorium.
-3. Framework wykryje się jako Next.js. Zostaw polecenia: instalacja `npm install`, build `npm run build`.
-4. W **Environment Variables** dodaj `LLM_API_KEY`. Opcjonalnie `LLM_PROVIDER`, `LLM_API_BASE` i `LLM_MODEL`. Zaznacz środowisko Production (oraz Preview, jeśli ma działać tak samo).
-5. Kliknij **Deploy**. Po zbudowaniu Vercel poda adres strony.
-6. Otwórz stronę, wpisz „Lawenda wąskolistna” i cenę `19,99`. Karta powinna powstać z katalogu nawet bez klucza. Z kluczem przycisk „Poproś AI o nowy opis” woła model tylko z nazwą rośliny.
+Kod jest w publicznym repozytorium GitHub: [NO-poland6/agra](https://github.com/NO-poland6/agra).
+
+1. W repozytorium zostaw tylko wzorzec `.env.example`. Nie commituj `.env`, `.env.local` ani żadnego pliku z kluczem.
+2. Na [vercel.com](https://vercel.com) wybierz **Add New… → Project**.
+3. **Import Git Repository** i wskaż GitHub **NO-poland6/agra**.
+4. Framework wykryje się jako Next.js. Zostaw polecenia: instalacja `npm install`, build `npm run build`.
+5. W **Environment Variables** ustaw zmienne `LLM_*`:
+   - `LLM_API_KEY` — klucz modelu; bez niego działa sam katalog.
+   - `LLM_PROVIDER` — opcjonalnie, `openai` albo `anthropic`.
+   - `LLM_API_BASE` — opcjonalnie, adres API.
+   - `LLM_MODEL` — opcjonalnie, nazwa modelu.
+   Zaznacz środowisko Production (oraz Preview, jeśli ma działać tak samo).
+6. Kliknij **Deploy**. Po zbudowaniu Vercel poda adres strony.
+7. Otwórz stronę, wpisz „Lawenda wąskolistna” i cenę `19,99`. Karta powinna powstać z katalogu nawet bez klucza. Z kluczem przycisk „Poproś AI o nowy opis” woła model tylko z nazwą rośliny.
 
 Zmiana zmiennych wymaga ponownego wdrożenia (Redeploy), jeśli Vercel nie podmieni ich sam.
 
 ## Wdrożenie na Netlify
 
-1. **Add new project → Import an existing project** i wskaż to samo repozytorium.
+1. **Add new project → Import an existing project** i wskaż GitHub [NO-poland6/agra](https://github.com/NO-poland6/agra).
 2. Netlify powinien rozpoznać Next.js. Build: `npm run build`.
 3. W **Site configuration → Environment variables** ustaw te same zmienne co wyżej (`LLM_API_KEY` i ewentualnie dostawcę oraz model).
 4. Wdróż stronę i sprawdź kartę lawendy tak jak na Vercelu.
