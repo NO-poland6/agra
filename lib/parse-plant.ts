@@ -1,4 +1,5 @@
 import { cleanName } from "./normalize";
+import { normalizeMonths, parseBadges } from "./shelf";
 import { FROST_LABELS, LIGHT, WATERING, type FrostLabel, type Light, type PlantInfo, type Watering } from "./types";
 
 const WATERING_WORDS: Record<string, Watering> = {
@@ -73,6 +74,14 @@ function mapLight(value: unknown): Light | null {
   return LIGHT_WORDS[key] ?? null;
 }
 
+function mapBadges(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return parseBadges(value.filter((item) => typeof item === "string").join(", "));
+  }
+  if (typeof value === "string") return parseBadges(value);
+  return [];
+}
+
 function mapFrost(value: unknown): FrostLabel | null {
   if (typeof value !== "string") return null;
   const key = value.trim().toLowerCase();
@@ -117,6 +126,10 @@ export function parsePlantResponse(data: unknown, fallback: { polishName: string
       frostDetail: text(record.frostDetail, 160),
       plantType: text(record.plantType, 60),
       height: text(record.height, 40),
+      width: text(record.width, 40),
+      hardinessC: text(record.hardinessC, 24),
+      bloomMonths: normalizeMonths(record.bloomMonths),
+      badges: mapBadges(record.badges),
     },
     warnings,
   };

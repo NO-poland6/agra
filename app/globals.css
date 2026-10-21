@@ -135,7 +135,7 @@
   width: 148mm;
   height: 210mm;
   box-sizing: border-box;
-  padding: 9mm 9mm 8mm;
+  padding: 7mm 7.5mm 6.5mm;
   position: relative;
   overflow: hidden;
   background: #fbf8f2;
@@ -162,42 +162,67 @@
   flex-direction: column;
 }
 
-.shelf-brand {
+.shelf-band {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  font-size: 8.5pt;
+  gap: 3mm;
+  padding-bottom: 1.6mm;
+  border-bottom: 0.7mm solid #1b2418;
+}
+
+.shelf-brand-name {
+  margin: 0;
+  font-size: 11pt;
+  font-weight: 750;
+  letter-spacing: 0.16em;
+}
+
+.shelf-brand-place {
+  margin: 0.3mm 0 0;
+  font-size: 8pt;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+}
+
+.shelf-qr-block {
+  display: grid;
+  justify-items: center;
+  gap: 0.4mm;
+  font-size: 6pt;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
-.shelf-rule {
-  border: 0;
-  border-top: 0.35mm solid #1b2418;
-  margin: 1.6mm 0 0;
+.shelf-qr {
+  display: block;
+  width: 14mm;
+  height: 14mm;
+  background: #fff;
 }
 
 .shelf-figure {
-  margin: 2.4mm 0 0;
+  margin: 2mm 0 0;
 }
 
 .shelf-photo {
   display: block;
   width: 100%;
-  height: 42mm;
+  height: 46mm;
   object-fit: cover;
-  object-position: center 42%;
+  object-position: center 40%;
   border: 0.28mm solid #1b2418;
   background: #efeae0;
 }
 
-.shelf-card.has-credit .shelf-photo {
-  height: 34mm;
+.shelf-card.has-photo .shelf-photo {
+  height: 38mm;
 }
 
 .shelf-credit {
-  margin: 0.7mm 0 0;
-  font-size: 6.5pt;
+  margin: 0.5mm 0 0;
+  font-size: 6pt;
   line-height: 1.15;
   text-align: right;
   white-space: nowrap;
@@ -206,53 +231,75 @@
 }
 
 .shelf-name {
-  margin: 2.2mm 0 0;
+  margin: 1.8mm 0 0;
   font-family: var(--font-fraunces), "Palatino Linotype", Palatino, serif;
-  font-weight: 560;
-  font-size: 20pt;
-  line-height: 1.08;
-  letter-spacing: -0.015em;
+  font-weight: 620;
+  font-size: 22pt;
+  line-height: 1.02;
+  letter-spacing: -0.02em;
   overflow-wrap: break-word;
   font-variation-settings: "opsz" 72, "SOFT" 20, "WONK" 0;
 }
 
+.shelf-name.is-long {
+  font-size: 16pt;
+}
+
 .shelf-latin {
-  margin: 0.8mm 0 0;
+  margin: 0.6mm 0 0;
   font-family: var(--font-fraunces), Palatino, serif;
   font-style: italic;
   font-weight: 460;
   font-size: 11pt;
+  line-height: 1.15;
+}
+
+.shelf-latin.is-empty {
+  visibility: hidden;
+}
+
+.shelf-type {
+  margin: 0.8mm 0 0;
+  font-size: 8pt;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.shelf-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1mm;
+  margin: 1.4mm 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.shelf-badges li {
+  border: 0.28mm solid #1b2418;
+  border-radius: 99px;
+  padding: 0.3mm 1.6mm 0.15mm;
+  font-size: 7.5pt;
+  font-weight: 700;
   line-height: 1.2;
 }
 
 .shelf-desc {
-  margin: 2.4mm 0 0;
-  font-size: 10.5pt;
-  line-height: 1.35;
-  overflow: hidden;
-  max-height: 46mm;
-}
-
-.shelf-card.has-photo .shelf-desc {
-  font-size: 9.5pt;
-  max-height: 26mm;
-}
-
-.shelf-card.has-credit .shelf-desc {
-  max-height: 24mm;
-}
-
-.shelf-meta {
-  margin: 2mm 0 0;
+  margin: 1.6mm 0 0;
   font-size: 9pt;
-  font-weight: 650;
+  line-height: 1.3;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
 }
 
 .shelf-icons {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 1.5mm;
-  margin-top: 2.4mm;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1mm;
+  margin-top: 2mm;
 }
 
 .shelf-icon-col {
@@ -263,30 +310,54 @@
 .shelf-pictogram {
   display: block;
   width: 100%;
-  height: 11mm;
-  margin: 0 auto 1mm;
+  height: 8.5mm;
+  margin: 0 auto 0.4mm;
 }
 
 .shelf-icon-value {
   margin: 0;
-  font-size: 8.5pt;
-  font-weight: 700;
+  font-size: 7.5pt;
+  font-weight: 750;
   line-height: 1.15;
+  overflow-wrap: anywhere;
 }
 
 .shelf-icon-label {
-  margin: 0.4mm 0 0;
-  font-size: 7pt;
+  margin: 0.2mm 0 0;
+  font-size: 6.5pt;
   font-weight: 650;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
-.shelf-frost-detail {
-  margin: 1.5mm 0 0;
+.shelf-months {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 0.55mm;
+  margin-top: 2mm;
+}
+
+.shelf-month {
   text-align: center;
-  font-size: 8pt;
-  line-height: 1.25;
+  font-size: 6pt;
+  font-weight: 650;
+  line-height: 1;
+  padding: 1.1mm 0 0.9mm;
+  border: 0.25mm solid #c4beB2;
+  color: #1b2418;
+}
+
+.shelf-month.is-on {
+  background: #d7e4c8;
+  border-color: #1b2418;
+  font-weight: 800;
+}
+
+.shelf-month-caption {
+  margin: 0.6mm 0 0;
+  text-align: right;
+  font-size: 6.5pt;
+  letter-spacing: 0.02em;
 }
 
 .shelf-bottom {
@@ -294,21 +365,22 @@
 }
 
 .shelf-price {
-  margin-top: 3mm;
+  margin-top: 2mm;
   min-height: 16mm;
-  border: 0.55mm solid #1b2418;
+  border: 1.1mm solid #1b2418;
+  background: #f3e2a4;
   display: flex;
   align-items: baseline;
   justify-content: center;
   gap: 2.5mm;
-  padding: 1.4mm 2mm 1mm;
+  padding: 1.2mm 2mm 0.8mm;
 }
 
 .shelf-price-amount {
   font-family: var(--font-fraunces), Palatino, serif;
-  font-weight: 640;
-  font-size: 32pt;
-  line-height: 0.9;
+  font-weight: 680;
+  font-size: 34pt;
+  line-height: 0.88;
   font-variant-numeric: lining-nums;
 }
 
@@ -318,15 +390,15 @@
 
 .shelf-price-currency {
   font-size: 14pt;
-  font-weight: 700;
+  font-weight: 750;
 }
 
 .shelf-footer {
-  margin: 1.8mm 0 0;
+  margin: 1.2mm 0 0;
   text-align: center;
-  font-size: 8pt;
+  font-size: 7.5pt;
   font-weight: 650;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.03em;
 }
 
 .shelf-empty {
