@@ -31,7 +31,7 @@ import { isPhotoCandidate, photoProxyUrl, type PhotoCandidate } from "@/lib/phot
 import { PLANTS } from "@/lib/plants";
 import type { CardModel, PlantInfo, PlantRecord, SourceKind } from "@/lib/types";
 
-import { LABEL_VARIANTS, VARIANT_STORAGE_KEY, labelVariant, type LabelVariant } from "@/lib/variants";
+import { DEFAULT_VARIANT, LABEL_VARIANTS, VARIANT_STORAGE_KEY, labelVariant, type LabelVariant } from "@/lib/variants";
 
 const SOURCE_LABEL: Record<SourceKind, string> = {
   catalog: "katalog szkółki",
@@ -84,7 +84,7 @@ function Field({
 }
 
 export function EtykietyApp() {
-  const [variant, setVariant] = useState<LabelVariant>("a");
+  const [variant, setVariant] = useState<LabelVariant>(DEFAULT_VARIANT);
   const [polishName, setPolishName] = useState("");
   const [latinName, setLatinName] = useState("");
   const [priceInput, setPriceInput] = useState("");
@@ -119,7 +119,7 @@ export function EtykietyApp() {
     const restore = () => {
       let saved: string | null = null;
       try { saved = localStorage.getItem(VARIANT_STORAGE_KEY); } catch {}
-      const next = labelVariant(new URLSearchParams(window.location.search).get("wariant")) ?? labelVariant(saved) ?? "a";
+      const next = labelVariant(new URLSearchParams(window.location.search).get("wariant")) ?? labelVariant(saved) ?? DEFAULT_VARIANT;
       setVariant(next);
       try { localStorage.setItem(VARIANT_STORAGE_KEY, next); } catch {}
     };
@@ -129,7 +129,7 @@ export function EtykietyApp() {
   }, []);
 
   function chooseVariant(value: string) {
-    const next = labelVariant(value) ?? "a";
+    const next = labelVariant(value) ?? DEFAULT_VARIANT;
     setVariant(next);
     try { localStorage.setItem(VARIANT_STORAGE_KEY, next); } catch {}
     const url = new URL(window.location.href);

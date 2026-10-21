@@ -156,7 +156,7 @@ function drawCard(
   let cursor = rule - mm(2);
   if (photo) {
     const w = variant === "d" ? mm(30) : mainWidth;
-    const h = variant === "d" ? mm(30) : mm(74);
+    const h = variant === "d" ? mm(30) : variant === "b" ? mm(62) : mm(74);
     const px = variant === "d" ? right - w : left;
     const pt = variant === "d" ? rule - mm(10) : cursor;
     const scale = Math.max(w / photo.width, h / photo.height);
@@ -203,12 +203,13 @@ function drawCard(
   else cursor = drawCompactCare(page, card, left, width, cursor-mm(2), fonts, ink, variant === "d", variant === "d");
   cursor = drawMonths(page, card, left, mainWidth, cursor, fonts, ink, rgb);
   const floor = y + mm(variant === "d" ? 48 : 35);
-  const lines = wrap(card.description, fonts.regular, 9, mainWidth);
+  const descSize = variant === "b" ? 10.5 : 9, descLead = variant === "b" ? 13.5 : 11.5;
+  const lines = wrap(card.description, fonts.regular, descSize, mainWidth);
   let lineIndex = 0;
-  while (lineIndex < lines.length && cursor - 11.5 > floor) {
-    cursor -= 11.5;
-    const last = cursor - 11.5 <= floor && lineIndex < lines.length - 1;
-    text(lines[lineIndex++] + (last ? "…" : ""), left, cursor, 9, fonts.regular, mainWidth);
+  while (lineIndex < lines.length && cursor - descLead > floor) {
+    cursor -= descLead;
+    const last = cursor - descLead <= floor && lineIndex < lines.length - 1;
+    text(lines[lineIndex++] + (last ? "…" : ""), left, cursor, descSize, fonts.regular, mainWidth);
   }
   const priceLeft = variant === "c" ? right-mm(60) : left;
   const priceWidth = right-priceLeft;
@@ -239,13 +240,12 @@ function drawCompactCare(page: import("pdf-lib").PDFPage, card: CardModel, left:
       page.drawText(values[i],{x:left+mm(13),y:cy-mm(6),size:11,font:fonts.semibold,color:ink});
     } else {
       drawCentered(page,titles[i],cx,cy,6.5,fonts.bold,ink,col);
-      drawCareGlyph(page, i === 0 ? "light" : i === 1 ? "water" : "frost",cx,cy-mm(8),mm(12),card.lightTo,ink);
-      drawCentered(page,values[i],cx,cy-mm(18),9,fonts.semibold,ink,col);
+      drawCareGlyph(page, i === 0 ? "light" : i === 1 ? "water" : "frost",cx,cy-mm(7.5),mm(9),card.lightTo,ink);
+      drawCentered(page,values[i],cx,cy-mm(15.5),9,fonts.semibold,ink,col);
     }
   }
-  const bottom = top-mm(rows ? 43 : stacked ? 77 : 25);
-  drawCentered(page,"Kłodzko · 6a · ok. −23 °C",left+width/2,bottom,6,fonts.regular,ink,width);
-  let next = bottom-mm(3);
+  const bottom = top-mm(rows ? 43 : stacked ? 77 : 22);
+  let next = bottom;
   for (const line of wrap(frost.note,fonts.regular,6,width)) { textNote(line); }
   function textNote(line: string) { drawCentered(page,line,left+width/2,next,6,fonts.regular,ink,width); next-=mm(2.5); }
   return next-mm(2);

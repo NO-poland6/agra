@@ -43,7 +43,7 @@ export function CareScales({ info, compact = false }: { info: PlantInfo; compact
         <p className="scale-value">{compact ? value : detail}</p>
       </section>)}
     </div>
-    <p className="scale-legend">{compact ? "Kłodzko · strefa 6a · ok. −23 °C" : SCALE_LEGEND}</p>
+    {compact ? null : <p className="scale-legend">{SCALE_LEGEND}</p>}
     {frost.note ? <p className="scale-note">{frost.note}</p> : null}
   </div>;
 }

@@ -4,3 +4,4 @@ export const VARIANT_STORAGE_KEY = "agra-label-variant";
 export function labelVariant(value: string | null): LabelVariant | null {
   return value && Object.hasOwn(LABEL_VARIANTS, value) ? value as LabelVariant : null;
 }
+export const DEFAULT_VARIANT: LabelVariant = "b";

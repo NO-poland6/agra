@@ -626,3 +626,8 @@
 .shelf-card.variant-d .shelf-name { margin-top: 12mm; min-height: 24mm; font-size: 29pt; }
 .shelf-card.variant-d .shelf-name.is-long { font-size: 24pt; }
 .variant-d .shelf-figure { top: 23mm; }
+
+/* Wariant B: mniejsze zdjęcie i ikony, większy opis */
+.variant-b .shelf-photo { height: 62mm; }
+.variant-b .care-single .care-glyph { height: 9mm; }
+.variant-b .shelf-desc { font-size: 11pt; line-height: 1.35; -webkit-line-clamp: 5; line-clamp: 5; }

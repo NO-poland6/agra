@@ -9,7 +9,7 @@ export const SHOP_REGION = {
 } as const;
 
 export const SCALE_LEGEND =
-  "Podkreślone: zakres rośliny · Kłodzko: strefa 6a, ok. −23 °C.";
+  "Podkreślone: zakres rośliny.";
 
 export const WATER_STEPS = [
   { level: 1, caption: "susza" },
@@ -257,7 +257,7 @@ export function resolveFrost(input: {
     level,
     minC,
     zone,
-    value: zone ? `${formatCelsius(minC)} · ${zone}` : formatCelsius(minC),
+    value: formatCelsius(minC),
     clearsShop: minC <= SHOP_REGION.celsius,
     note,
   };
