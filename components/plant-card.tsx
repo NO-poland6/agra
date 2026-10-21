@@ -24,10 +24,16 @@ export function PlantCard({
     const node = descRef.current;
     if (!node || !onOverflow) return;
     onOverflow(node.scrollHeight > node.clientHeight + 2);
-  }, [card.description, card.photoDataUrl, card.polishName, onOverflow]);
+  }, [card.description, card.photoCredit, card.photoDataUrl, card.polishName, onOverflow]);
+
+  const photoClass = card.photoDataUrl
+    ? card.photoCredit
+      ? "shelf-card has-photo has-credit"
+      : "shelf-card has-photo"
+    : "shelf-card";
 
   return (
-    <article className={card.photoDataUrl ? "shelf-card has-photo" : "shelf-card"} data-testid="shelf-card">
+    <article className={photoClass} data-testid="shelf-card">
       <div className="shelf-card-inner">
         <header className="shelf-brand">
           <span>AGRA PSK</span>
@@ -35,9 +41,21 @@ export function PlantCard({
         </header>
         <hr className="shelf-rule" />
         {card.photoDataUrl ? (
-          // Zdjęcie jest lokalnym plikiem pracownika, nie zasobem z optymalizatora.
-          // eslint-disable-next-line @next/next/no-img-element
-          <img className="shelf-photo" src={card.photoDataUrl} alt={`Zdjęcie: ${card.polishName || "roślina"}`} />
+          <figure className="shelf-figure">
+            {/* Zdjęcie jest albo plikiem pracownika, albo plikiem z /api/photo. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              className="shelf-photo"
+              src={card.photoDataUrl}
+              alt={`Zdjęcie: ${card.polishName || "roślina"}`}
+              data-testid="shelf-photo"
+            />
+            {card.photoCredit ? (
+              <figcaption className="shelf-credit" data-testid="shelf-credit">
+                {card.photoCredit}
+              </figcaption>
+            ) : null}
+          </figure>
         ) : null}
         <h2 className="shelf-name">{card.polishName || "Nazwa rośliny"}</h2>
         {card.latinName ? <p className="shelf-latin">{card.latinName}</p> : null}

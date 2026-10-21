@@ -27,13 +27,21 @@ async function loadFont(url: string): Promise<ArrayBuffer> {
   return bytes;
 }
 
-async function rasterToPng(dataUrl: string): Promise<Uint8Array | null> {
+function sniffImage(bytes: Uint8Array): string {
+  if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return "image/jpeg";
+  if (bytes.length >= 4 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) {
+    return "image/png";
+  }
+  return "";
+}
+
+async function rasterToPng(src: string): Promise<Uint8Array | null> {
   const image = new Image();
   const loaded = new Promise<void>((resolve, reject) => {
     image.onload = () => resolve();
     image.onerror = () => reject(new Error("photo"));
   });
-  image.src = dataUrl;
+  image.src = src;
   await loaded;
   const canvas = document.createElement("canvas");
   canvas.width = image.naturalWidth;
@@ -47,22 +55,45 @@ async function rasterToPng(dataUrl: string): Promise<Uint8Array | null> {
   return Uint8Array.from(atob(base64), (char) => char.charCodeAt(0));
 }
 
-async function embedPhoto(pdf: import("pdf-lib").PDFDocument, dataUrl: string | null) {
-  if (!dataUrl) return null;
-  const [header, base64] = dataUrl.split(",");
-  if (!base64) return null;
+async function imageBytes(src: string): Promise<{ bytes: Uint8Array; mime: string } | null> {
+  if (src.startsWith("data:")) {
+    const match = src.match(/^data:([^;,]+);base64,(.+)$/);
+    if (!match?.[2]) return null;
+    const bytes = Uint8Array.from(atob(match[2]), (char) => char.charCodeAt(0));
+    return { bytes, mime: sniffImage(bytes) || match[1] };
+  }
+  if (!src.startsWith("/api/photo?")) return null;
+  const response = await fetch(src);
+  if (!response.ok) return null;
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  const header = (response.headers.get("content-type") || "").split(";")[0]?.trim() || "";
+  return { bytes, mime: sniffImage(bytes) || header };
+}
+
+async function embedPhoto(pdf: import("pdf-lib").PDFDocument, src: string | null) {
+  if (!src) return null;
   try {
-    if (header.includes("image/png")) {
-      return pdf.embedPng(Uint8Array.from(atob(base64), (char) => char.charCodeAt(0)));
-    }
-    if (header.includes("image/jpeg") || header.includes("image/jpg")) {
-      return pdf.embedJpg(Uint8Array.from(atob(base64), (char) => char.charCodeAt(0)));
-    }
-    const png = await rasterToPng(dataUrl);
+    const loaded = await imageBytes(src);
+    if (!loaded) return null;
+    if (loaded.mime.includes("png")) return await pdf.embedPng(loaded.bytes);
+    if (loaded.mime.includes("jpeg") || loaded.mime.includes("jpg")) return await pdf.embedJpg(loaded.bytes);
+    const png = await rasterToPng(src);
     return png ? pdf.embedPng(png) : null;
   } catch {
-    return null;
+    try {
+      const png = await rasterToPng(src);
+      return png ? pdf.embedPng(png) : null;
+    } catch {
+      return null;
+    }
   }
+}
+
+function fitLine(text: string, font: import("pdf-lib").PDFFont, size: number, width: number): string {
+  if (font.widthOfTextAtSize(text, size) <= width) return text;
+  let cut = text;
+  while (cut.length > 8 && font.widthOfTextAtSize(`${cut}…`, size) > width) cut = cut.slice(0, -1);
+  return `${cut.trimEnd()}…`;
 }
 
 function wrap(text: string, font: import("pdf-lib").PDFFont, size: number, width: number): string[] {
@@ -155,25 +186,49 @@ function drawCard(
 
   if (photo) {
     const boxW = contentWidth;
-    const boxH = mm(42);
-    const scale = Math.min(boxW / photo.width, boxH / photo.height);
+    const boxH = mm(card.photoCredit ? 34 : 42);
+    const scale = Math.max(boxW / photo.width, boxH / photo.height);
     const drawW = photo.width * scale;
     const drawH = photo.height * scale;
+    const imageX = left + (boxW - drawW) * 0.5;
+    const imageY = cursor - (boxH - drawH) * 0.42 - drawH;
+    const boxBottom = cursor - boxH;
     page.drawRectangle({
       x: left,
-      y: cursor - boxH,
+      y: boxBottom,
+      width: boxW,
+      height: boxH,
+      color: rgb(0.984, 0.973, 0.949),
+    });
+    const { pushGraphicsState, popGraphicsState, rectangle, clip, endPath } = requireClip();
+    page.pushOperators(pushGraphicsState(), rectangle(left, boxBottom, boxW, boxH), clip(), endPath());
+    page.drawImage(photo, { x: imageX, y: imageY, width: drawW, height: drawH });
+    page.pushOperators(popGraphicsState());
+    page.drawRectangle({
+      x: left,
+      y: boxBottom,
       width: boxW,
       height: boxH,
       borderColor: ink,
       borderWidth: 0.7,
     });
-    page.drawImage(photo, {
-      x: left + (boxW - drawW) / 2,
-      y: cursor - boxH + (boxH - drawH) / 2,
-      width: drawW,
-      height: drawH,
-    });
-    cursor -= boxH + mm(3);
+    cursor -= boxH;
+    if (card.photoCredit) {
+      const creditSize = 6.5;
+      cursor -= mm(3.1);
+      const line = fitLine(card.photoCredit, fonts.regular, creditSize, contentWidth);
+      const lineWidth = fonts.regular.widthOfTextAtSize(line, creditSize);
+      page.drawText(line, {
+        x: right - lineWidth,
+        y: cursor,
+        size: creditSize,
+        font: fonts.regular,
+        color: ink,
+      });
+      cursor -= mm(2);
+    } else {
+      cursor -= mm(3);
+    }
   }
 
   const nameSize = card.polishName.length > 28 ? 16 : 20;
@@ -280,6 +335,18 @@ const rgbHolder: { rgb: typeof import("pdf-lib").rgb } = {
     throw new Error(`PDF nie jest gotowe (${r},${g},${b})`);
   },
 };
+
+type ClipOps = Pick<
+  typeof import("pdf-lib"),
+  "pushGraphicsState" | "popGraphicsState" | "rectangle" | "clip" | "endPath"
+>;
+
+const clipHolder: { ops: ClipOps | null } = { ops: null };
+
+function requireClip(): ClipOps {
+  if (!clipHolder.ops) throw new Error("PDF nie jest gotowe");
+  return clipHolder.ops;
+}
 
 function drawWater(
   page: import("pdf-lib").PDFPage,
@@ -427,9 +494,11 @@ function labelUnder(
 }
 
 export async function downloadCardPdf(card: CardModel, mode: "a5" | "a4") {
-  const { PDFDocument, rgb } = await import("pdf-lib");
+  const pdfLib = await import("pdf-lib");
+  const { PDFDocument, rgb } = pdfLib;
   const fontkit = (await import("@pdf-lib/fontkit")).default;
   rgbHolder.rgb = rgb;
+  clipHolder.ops = pdfLib;
   const pdf = await PDFDocument.create();
   pdf.registerFontkit(fontkit);
   const [regular, semibold, bold, italic, display, displayItalic] = await Promise.all([

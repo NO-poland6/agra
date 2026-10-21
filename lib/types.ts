@@ -33,4 +33,6 @@ export type SourceKind = "catalog" | "cache" | "ai" | "manual";
 export type CardModel = PlantInfo & {
   price: number;
   photoDataUrl: string | null;
+  /** Drobny podpis licencji. Pusty przy własnym zdjęciu i przy karcie bez fotografii. */
+  photoCredit: string | null;
 };

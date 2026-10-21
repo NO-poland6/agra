@@ -4,13 +4,23 @@ Aplikacja dla pracowników sklepu ogrodniczego **AGRA PSK** w Kłodzku (od 1991 
 
 ## Co robi program
 
-1. Pracownik wpisuje polską nazwę (i ewentualnie łacińską) oraz cenę w złotych. Może dodać zdjęcie z dysku.
+1. Pracownik wpisuje polską nazwę (i ewentualnie łacińską) oraz cenę w złotych. Program sam szuka zdjęcia rośliny. Można też wgrać własne.
 2. Opis i dane pielęgnacji biorą się z katalogu ponad stu roślin popularnych w polskich szkółkach. Jeśli rośliny nie ma w katalogu, a na serwerze jest klucz API, opis przygotowuje model językowy. Zawsze można wpisać treść ręcznie.
 3. Przed drukiem da się poprawić każde pole: opis, podlewanie, stanowisko, mrozoodporność, typ, wysokość, nazwy i cenę.
 4. Podgląd pokazuje kartę A5 (148 × 210 mm) oraz arkusz A4 w poziomie z dwiema kartami i linią cięcia. Jest też pobieranie PDF.
-5. Gotowe opisy (także poprawki) zostają w pamięci przeglądarki, więc ta sama roślina nie woła modelu drugi raz. Zdjęcia nie są zapisywane.
+5. Gotowe opisy (także poprawki) zostają w pamięci przeglądarki, więc ta sama roślina nie woła modelu drugi raz. Wybrane zdjęcie — adres i podpis — też zostaje przy tej roślinie.
 
-Do modelu wysyłana jest **wyłącznie nazwa rośliny**. Cena, zdjęcie i dane sklepu nie opuszczają przeglądarki.
+Do modelu i do wyszukiwarki zdjęć wysyłana jest **wyłącznie nazwa rośliny**. Cena i dane sklepu nie opuszczają przeglądarki.
+
+## Zdjęcia
+
+Po przygotowaniu etykiety program szuka fotografii. Najpierw bierze nazwę łacińską, a gdy jej nie ma — polską. Źródła to Wikimedia Commons oraz obserwacje iNaturalist oznaczone licencją CC BY, CC BY-SA, CC0 albo domeną publiczną. Licencje z zakazem użytku komercyjnego (CC BY-NC) i zakazem przeróbek (CC BY-ND) są odrzucane. Nie korzystamy z Google Images ani z płatnych banków zdjęć.
+
+Na karcie A5, na arkuszu dwóch kart i w pliku PDF widać wybrane zdjęcie oraz drobny podpis, na przykład „fot. Norbert Nagel, CC BY-SA 3.0, Wikimedia Commons”. Pracownik dostaje kilka miniaturek (do ośmiu) i może wybrać inny kadr, zdjąć zdjęcie albo wgrać własne (JPG, PNG albo WEBP, do 2,5 MB). Własne zdjęcie nie dostaje podpisu z internetu.
+
+Do Commons i iNaturalist serwer wysyła tylko nazwę. Przeglądarka ściąga plik przez `/api/photo`, więc druk i PDF nie wpadają na ograniczenia CORS. W pamięci przeglądarki zostaje adres zdjęcia i podpis, nie cena. Odświeżenie strony przywraca otwartą etykietę razem ze zdjęciem. Gdy sieć nie odpowie, karta i tak powstaje: bez fotografii albo z poprzednio zapamiętanym zdjęciem tej rośliny.
+
+Klucz API nie jest potrzebny do zdjęć. Commons i iNaturalist są publiczne.
 
 ## Uruchomienie na komputerze
 
@@ -73,7 +83,7 @@ Trasa `/api/generate` musi działać jako funkcja serwerowa, nie jako sam statyc
 
 ## Prywatność
 
-Żądanie do `/api/generate` jest obcinane do pól `polishName` i `latinName`. Cena nie wchodzi do treści wysyłanej modelowi. Zdjęcie jest czytane lokalnie jako podgląd i nie jest przesyłane. Opisy trzymane są w `localStorage` tej przeglądarki.
+Żądanie do `/api/generate` i do `/api/photos` jest obcinane do pól `polishName` i `latinName`. Cena nie wchodzi do treści wysyłanej modelowi ani do Commons i iNaturalist. Własne zdjęcie jest czytane lokalnie i nie jest przesyłane na zewnątrz. Opisy oraz wybrany adres zdjęcia z podpisem trzymane są w `localStorage` tej przeglądarki. Plik zdjęcia z internetu przeglądarka bierze z własnej trasy `/api/photo`, która przyjmuje tylko adresy Wikimedia i iNaturalist.
 
 Adres wdrożonej strony jest publiczny, jeśli tak ustawisz hosting. Klucz nie wycieka do kodu strony, ale każdy, kto zna adres, może zużywać limit modelu (jest prosty hamulec: 20 zapytań na minutę z jednego adresu). Gdy to przeszkadza, zostaw klucz pusty i korzystaj z katalogu.
 
@@ -82,8 +92,9 @@ Adres wdrożonej strony jest publiczny, jeśli tak ustawisz hosting. Klucz nie w
 - Katalog opisuje gatunki i kilka częstych odmian, nie każdą roślinę ze stoiska. Nietypową odmianę trzeba poprawić ręcznie albo dopytać model.
 - Liczby mrozoodporności są typowe dla gatunku, nie obietnicą dla konkretnej zimy w Kotlinie Kłodzkiej. Przy roślinach wrażliwych opis o tym mówi, ale przed drukiem i tak warto rzucić okiem.
 - Model bywa pewny siebie i myli odmiany. Opis z AI jest do sprawdzenia, nie do ślepego wydruku.
-- Zdjęcie znika po odświeżeniu strony. Zostają nazwy, opis i cena.
+- Gdy dla rośliny nie ma zdjęcia na wolnej licencji albo sieć nie odpowiada, karta powstaje bez fotografii. Można wtedy wgrać własne.
+- Własne zdjęcie zostaje po odświeżeniu tej samej karty w tej przeglądarce. Po wyczyszczeniu danych witryny trzeba wgrać je ponownie. Zdjęcie z Commons lub iNaturalist wraca z zapamiętanego adresu.
 - Przeglądarki potrafią dodać własny nagłówek albo zeskalować stronę. Bez skali 100% karta nie zejdzie na A5.
-- PDF odtwarza treść karty wektorowo i może minimalnie różnić się od podglądu (szczególnie przy zdjęciu). Wzorem do druku jest podgląd i przycisk „Drukuj”.
+- PDF odtwarza treść karty wektorowo, ze zdjęciem i podpisem. Przy bardzo nietypowym pliku graficznym podgląd na ekranie i przycisk „Drukuj” zostają wzorem.
 
 Czcionki na karcie: [Source Sans 3](https://github.com/adobe-fonts/source-sans) (Adobe, SIL OFL) i [Fraunces](https://github.com/undercasetype/Fraunces) (SIL OFL). Teksty licencji są w `public/fonts/`.

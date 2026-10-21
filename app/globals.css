@@ -177,14 +177,32 @@
   margin: 1.6mm 0 0;
 }
 
+.shelf-figure {
+  margin: 2.4mm 0 0;
+}
+
 .shelf-photo {
   display: block;
   width: 100%;
   height: 42mm;
   object-fit: cover;
-  margin-top: 2.4mm;
+  object-position: center 42%;
   border: 0.28mm solid #1b2418;
   background: #efeae0;
+}
+
+.shelf-card.has-credit .shelf-photo {
+  height: 34mm;
+}
+
+.shelf-credit {
+  margin: 0.7mm 0 0;
+  font-size: 6.5pt;
+  line-height: 1.15;
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .shelf-name {
@@ -217,7 +235,11 @@
 
 .shelf-card.has-photo .shelf-desc {
   font-size: 9.5pt;
-  max-height: 28mm;
+  max-height: 26mm;
+}
+
+.shelf-card.has-credit .shelf-desc {
+  max-height: 24mm;
 }
 
 .shelf-meta {

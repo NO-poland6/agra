@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { FileDown, ImagePlus, Printer, Sprout } from "lucide-react";
+import { FileDown, Printer, Sprout } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,14 +14,26 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { EmptyCard, PlantCard, TwoUpSheet } from "@/components/plant-card";
+import { PhotoPicker, type PhotoSearchStatus } from "@/components/photo-picker";
 import { ScaledFrame } from "@/components/scaled-frame";
 import { readCachedPlant, readRecent, writeCachedPlant, writeRecent, type RecentEntry } from "@/lib/cache";
+import { cacheKey } from "@/lib/cache-key";
+import {
+  clearUploadData,
+  readDraft,
+  readPhotoChoice,
+  readUploadData,
+  writeDraft,
+  writePhotoChoice,
+  writeUploadData,
+} from "@/lib/photo-cache";
 import { formatPrice } from "@/lib/format";
 import { parsePrice } from "@/lib/format";
 import { FROST_ITEMS, LIGHT_ITEMS, WATERING_ITEMS } from "@/lib/labels";
 import { findPlantById, interpretMatches, searchPlants, type MatchHit } from "@/lib/match";
 import { normalize } from "@/lib/normalize";
 import { buildGeneratePayload } from "@/lib/plant-query";
+import { isPhotoCandidate, photoProxyUrl, type PhotoCandidate } from "@/lib/photos";
 import { PLANTS } from "@/lib/plants";
 import type { CardModel, FrostLabel, Light, PlantInfo, PlantRecord, SourceKind, Watering } from "@/lib/types";
 
@@ -71,6 +83,12 @@ export function EtykietyApp() {
   const [latinName, setLatinName] = useState("");
   const [priceInput, setPriceInput] = useState("");
   const [photo, setPhoto] = useState<string | null>(null);
+  const [photoCredit, setPhotoCredit] = useState<string | null>(null);
+  const [candidates, setCandidates] = useState<PhotoCandidate[]>([]);
+  const [photoStatus, setPhotoStatus] = useState<PhotoSearchStatus>("idle");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [photoChoice, setPhotoChoice] = useState<"remote" | "none" | "upload" | "empty">("empty");
+  const [hydrated, setHydrated] = useState(false);
   const [info, setInfo] = useState<PlantInfo | null>(null);
   const [source, setSource] = useState<SourceKind | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -85,12 +103,65 @@ export function EtykietyApp() {
   const [pdfError, setPdfError] = useState<string | null>(null);
   const baseline = useRef("");
   const photoKey = useRef("");
-  const fileRef = useRef<HTMLInputElement>(null);
+  const photoMode = useRef<"remote" | "none" | "upload" | "empty">("empty");
+  const searchGen = useRef(0);
+  const candidatesRef = useRef<PhotoCandidate[]>([]);
+  const currentPhotoRef = useRef<PhotoCandidate | null>(null);
+  const plantNames = useRef({ polishName: "", latinName: "" });
 
   useEffect(() => {
     let cancelled = false;
+    const draft = readDraft();
     queueMicrotask(() => {
-      if (!cancelled) setRecent(readRecent());
+      if (cancelled) return;
+      setRecent(readRecent());
+      if (draft?.info) {
+        setInfo(draft.info);
+        setPolishName(draft.polishName);
+        setLatinName(draft.latinName);
+        setPriceInput(draft.priceInput);
+        setSource(draft.source);
+        setNotice(draft.notice);
+        baseline.current = JSON.stringify(draft.info);
+        photoKey.current = cacheKey(draft.info.polishName, draft.info.latinName);
+        plantNames.current = { polishName: draft.info.polishName, latinName: draft.info.latinName };
+        candidatesRef.current = draft.candidates;
+        setCandidates(draft.candidates);
+        if (draft.photoMode === "remote" && draft.photo) {
+          photoMode.current = "remote";
+          setPhotoChoice("remote");
+          currentPhotoRef.current = draft.photo;
+          setPhoto(photoProxyUrl(draft.photo.printUrl));
+          setPhotoCredit(draft.photo.credit);
+          setSelectedId(draft.photo.id);
+          setPhotoStatus(draft.candidates.length ? "ready" : "idle");
+        } else if (draft.photoMode === "upload") {
+          const data = readUploadData();
+          const saved = readPhotoChoice(draft.info.polishName, draft.info.latinName);
+          if (data) {
+            photoMode.current = "upload";
+            setPhotoChoice("upload");
+            setPhoto(data);
+            setPhotoCredit(null);
+            setSelectedId("upload");
+            setPhotoStatus(draft.candidates.length ? "ready" : "idle");
+          } else if (saved?.mode === "remote" && saved.photo) {
+            photoMode.current = "remote";
+            setPhotoChoice("remote");
+            currentPhotoRef.current = saved.photo;
+            setPhoto(photoProxyUrl(saved.photo.printUrl));
+            setPhotoCredit(saved.photo.credit);
+            setSelectedId(saved.photo.id);
+            setPhotoStatus("ready");
+          }
+        } else if (draft.photoMode === "none") {
+          photoMode.current = "none";
+          setPhotoChoice("none");
+          setSelectedId("none");
+          setPhotoStatus(draft.candidates.length ? "ready" : "idle");
+        }
+      }
+      setHydrated(true);
     });
     fetch("/api/status")
       .then((response) => response.json())
@@ -130,18 +201,120 @@ export function EtykietyApp() {
     return () => window.clearTimeout(handle);
   }, [info, priceInput]);
 
+  useEffect(() => {
+    if (!hydrated || !info) return;
+    const handle = window.setTimeout(() => {
+      writeDraft({
+        polishName,
+        latinName,
+        priceInput,
+        info,
+        source,
+        notice,
+        photoMode: photoMode.current,
+        photo: photoMode.current === "remote" ? currentPhotoRef.current : null,
+        candidates: candidatesRef.current,
+      });
+    }, 300);
+    return () => window.clearTimeout(handle);
+  }, [hydrated, info, latinName, notice, photo, photoChoice, photoCredit, polishName, priceInput, source, candidates]);
+
   const suggestions = useMemo(() => {
     if (normalize(polishName).length < 2) return [];
     return searchPlants(polishName, latinName).slice(0, 6);
   }, [polishName, latinName]);
 
   const price = parsePrice(priceInput);
-  const card: CardModel | null = info && price ? { ...info, price, photoDataUrl: photo } : null;
+  const card: CardModel | null = info && price ? { ...info, price, photoDataUrl: photo, photoCredit } : null;
+
+  function applyRemote(candidate: PhotoCandidate, persist: boolean) {
+    photoMode.current = "remote";
+    setPhotoChoice("remote");
+    setPhoto(photoProxyUrl(candidate.printUrl));
+    setPhotoCredit(candidate.credit);
+    setSelectedId(candidate.id);
+    currentPhotoRef.current = candidate;
+    if (persist) {
+      writePhotoChoice(plantNames.current.polishName, plantNames.current.latinName, {
+        mode: "remote",
+        photo: candidate,
+      });
+    }
+  }
+
+  async function startPhotoSearch(plant: PlantInfo, force = false) {
+    const key = cacheKey(plant.polishName, plant.latinName);
+    const previous = photoKey.current;
+    const changed = previous !== key;
+    if (!force && !changed && candidatesRef.current.length > 0 && photoMode.current !== "empty") return;
+    photoKey.current = key;
+    plantNames.current = { polishName: plant.polishName, latinName: plant.latinName };
+    if (changed && previous && photoMode.current === "upload") {
+      photoMode.current = "empty";
+      setPhotoChoice("empty");
+      setPhoto(null);
+      setPhotoCredit(null);
+      setSelectedId(null);
+      clearUploadData();
+    }
+    const saved = readPhotoChoice(plant.polishName, plant.latinName);
+    if (photoMode.current !== "upload") {
+      if (!force && saved?.mode === "none") {
+        photoMode.current = "none";
+        setPhotoChoice("none");
+        setPhoto(null);
+        setPhotoCredit(null);
+        setSelectedId("none");
+        currentPhotoRef.current = null;
+      } else if (!force && saved?.mode === "remote" && saved.photo) {
+        applyRemote(saved.photo, false);
+      } else if (changed || photoMode.current !== "remote") {
+        photoMode.current = "empty";
+        setPhotoChoice("empty");
+        setPhoto(null);
+        setPhotoCredit(null);
+        setSelectedId(null);
+        currentPhotoRef.current = null;
+      }
+    }
+    if (changed) {
+      const seed = saved?.mode === "remote" && saved.photo ? [saved.photo] : [];
+      candidatesRef.current = seed;
+      setCandidates(seed);
+    }
+    const gen = ++searchGen.current;
+    setPhotoStatus("loading");
+    try {
+      const response = await fetch("/api/photos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(buildGeneratePayload({ polishName: plant.polishName, latinName: plant.latinName })),
+      });
+      let data: { photos?: unknown } = {};
+      try {
+        data = (await response.json()) as { photos?: unknown };
+      } catch {
+        data = {};
+      }
+      if (gen !== searchGen.current) return;
+      const photos = Array.isArray(data.photos) ? data.photos.filter(isPhotoCandidate) : [];
+      const extra = photoMode.current === "remote" ? currentPhotoRef.current : null;
+      const merged = extra && !photos.some((item) => item.id === extra.id) ? [extra, ...photos].slice(0, 8) : photos;
+      candidatesRef.current = merged;
+      setCandidates(merged);
+      if (!response.ok && merged.length === 0) {
+        setPhotoStatus("error");
+        return;
+      }
+      setPhotoStatus(merged.length ? "ready" : "empty");
+      if (photoMode.current === "empty" && photos[0]) applyRemote(photos[0], true);
+    } catch {
+      if (gen !== searchGen.current) return;
+      setPhotoStatus(photoMode.current === "remote" || photoMode.current === "upload" ? "ready" : "error");
+    }
+  }
 
   function apply(plant: PlantInfo, nextSource: SourceKind, nextNotice: string, priceValue: number) {
-    const key = `${normalize(plant.polishName)}|${normalize(plant.latinName)}`;
-    if (photoKey.current && photoKey.current !== key) setPhoto(null);
-    photoKey.current = key;
     setInfo(plant);
     setPolishName(plant.polishName);
     setLatinName(plant.latinName);
@@ -153,6 +326,7 @@ export function EtykietyApp() {
     writeRecent(plant, priceValue);
     setRecent(readRecent());
     setPreview("a5");
+    void startPhotoSearch(plant);
   }
 
   function openManual(names: { polishName: string; latinName: string }, message: string, priceValue: number) {
@@ -281,11 +455,38 @@ export function EtykietyApp() {
       setError("Zdjęcie jest za duże. Wybierz plik do 2,5 MB.");
       return;
     }
+    setError(null);
     const reader = new FileReader();
     reader.onload = () => {
-      if (typeof reader.result === "string") setPhoto(reader.result);
+      if (typeof reader.result !== "string") return;
+      photoMode.current = "upload";
+      setPhotoChoice("upload");
+      setPhoto(reader.result);
+      setPhotoCredit(null);
+      setSelectedId("upload");
+      writeUploadData(reader.result);
     };
     reader.readAsDataURL(file);
+  }
+
+  function chooseCandidate(candidate: PhotoCandidate) {
+    plantNames.current = {
+      polishName: info?.polishName || polishName,
+      latinName: info?.latinName || latinName,
+    };
+    applyRemote(candidate, true);
+  }
+
+  function clearPhoto() {
+    photoMode.current = "none";
+    setPhotoChoice("none");
+    setPhoto(null);
+    setPhotoCredit(null);
+    setSelectedId("none");
+    currentPhotoRef.current = null;
+    clearUploadData();
+    const names = plantNames.current.polishName || plantNames.current.latinName ? plantNames.current : { polishName, latinName };
+    if (names.polishName || names.latinName) writePhotoChoice(names.polishName, names.latinName, { mode: "none" });
   }
 
   function printSheet(mode: "a5" | "a4") {
@@ -360,7 +561,7 @@ export function EtykietyApp() {
               <div>
                 <h2 className="font-display text-xl">Nowa etykieta</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Wpisz nazwę rośliny i cenę. Do usługi AI wędruje wyłącznie nazwa — cena i zdjęcie zostają w tej przeglądarce.
+                  Wpisz nazwę rośliny i cenę. Do opisu AI i do wyszukiwarki zdjęć wędruje wyłącznie nazwa — cena zostaje w tej przeglądarce.
                 </p>
               </div>
 
@@ -428,33 +629,18 @@ export function EtykietyApp() {
                 />
               </Field>
 
-              <div className="grid gap-1.5">
-                <Label htmlFor="zdjecie">Zdjęcie</Label>
-                <div className="flex flex-wrap items-center gap-2">
-                  <Button type="button" variant="outline" className="h-10" onClick={() => fileRef.current?.click()}>
-                    <ImagePlus />
-                    {photo ? "Zmień zdjęcie" : "Dodaj zdjęcie"}
-                  </Button>
-                  {photo ? (
-                    <Button type="button" variant="ghost" className="h-10" onClick={() => setPhoto(null)}>
-                      Usuń
-                    </Button>
-                  ) : (
-                    <span className="text-xs text-muted-foreground">Opcjonalnie, tylko na tej etykiecie.</span>
-                  )}
-                </div>
-                <input
-                  ref={fileRef}
-                  id="zdjecie"
-                  className="sr-only"
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  onChange={(event) => {
-                    onPhoto(event.target.files?.[0]);
-                    event.target.value = "";
-                  }}
-                />
-              </div>
+              <PhotoPicker
+                status={photoStatus}
+                candidates={candidates}
+                selectedId={selectedId}
+                credit={photoCredit}
+                onSelect={chooseCandidate}
+                onClear={clearPhoto}
+                onUpload={onPhoto}
+                onRetry={() => {
+                  if (info) void startPhotoSearch(info, true);
+                }}
+              />
 
               {error ? (
                 <p role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm">
