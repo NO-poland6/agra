@@ -8,7 +8,6 @@ import { formatPriceParts } from "@/lib/format";
 import { MONTH_ROMAN, sizeLabel } from "@/lib/shelf";
 import type { CardModel } from "@/lib/types";
 
-const BRAND = "AGRA PSK · Kłodzko · od 1991 r.";
 
 export function PlantCard({
   card,
@@ -63,10 +62,20 @@ export function PlantCard({
         {card.latinName ? <p className="shelf-latin">{card.latinName}</p> : <p className="shelf-latin is-empty">nazwa łacińska</p>}
         <p className="shelf-type">
           {card.plantType ? <span>{card.plantType}</span> : null}
-          <span className="shelf-size-inline">
-            <SizeIcon />
-            {size}
-          </span>
+          {variant === "b" && (card.height?.trim() || card.width?.trim()) ? (
+            <span className="shelf-size-inline shelf-size-lines">
+              <SizeIcon />
+              <span className="size-lines">
+                {card.height?.trim() ? <span>Wysokość: {card.height.trim()}</span> : null}
+                {card.width?.trim() ? <span>Szerokość: {card.width.trim()}</span> : null}
+              </span>
+            </span>
+          ) : (
+            <span className="shelf-size-inline">
+              <SizeIcon />
+              {size}
+            </span>
+          )}
         </p>
 
         {badges.length > 0 ? (
@@ -100,7 +109,7 @@ export function PlantCard({
             <span className={compactPrice ? "shelf-price-amount is-long" : "shelf-price-amount"}>{amount}</span>
             <span className="shelf-price-currency">{currency}</span>
           </div>
-          <p className="shelf-footer">{BRAND}</p>
+
         </div>
       </div>
     </article>
@@ -136,7 +145,7 @@ export function EmptyCard() {
             <span className="shelf-price-amount">–</span>
             <span className="shelf-price-currency">zł</span>
           </div>
-          <p className="shelf-footer">{BRAND}</p>
+
         </div>
       </div>
     </article>

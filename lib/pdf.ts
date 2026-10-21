@@ -188,10 +188,19 @@ function drawCard(
   text(card.latinName, left, cursor, 10, fonts.displayItalic, nameWidth);
   cursor -= mm(5);
   text(card.plantType.toLocaleUpperCase("pl"), left, cursor, 7.5, fonts.bold, mainWidth);
-  const dimensions = sizeLabel(card.height, card.width);
+  const sizeRows = [card.height?.trim() ? `Wysokość: ${card.height.trim()}` : "", card.width?.trim() ? `Szerokość: ${card.width.trim()}` : ""].filter(Boolean);
+  if (variant === "b" && sizeRows.length) {
+    sizeRows.forEach((row, i) => {
+      const w = fonts.semibold.widthOfTextAtSize(row, 10);
+      text(row, left + mainWidth - w, cursor + mm(3) - i * mm(4.6), 10, fonts.semibold, w + 1);
+    });
+    cursor -= mm(4.6) * (sizeRows.length - 1) - mm(1);
+  }
+  const dimensions = variant === "b" && sizeRows.length ? "" : sizeLabel(card.height, card.width);
   const dimensionWidth = fonts.semibold.widthOfTextAtSize(dimensions, 7);
   const typeWidth = fonts.bold.widthOfTextAtSize(card.plantType.toLocaleUpperCase("pl"), 7.5);
-  if (typeWidth + dimensionWidth + mm(3) < mainWidth) {
+  if (!dimensions) { /* wariant B: wymiary w dwóch liniach */ }
+  else if (typeWidth + dimensionWidth + mm(3) < mainWidth) {
     text(dimensions, left + mainWidth - dimensionWidth, cursor, 7, fonts.semibold, dimensionWidth + 1);
   } else {
     cursor -= mm(4);
@@ -223,7 +232,6 @@ function drawCard(
   const priceX = variant === "d" ? left : variant === "b" ? right-total : priceLeft+(priceWidth-total)/2;
   text(amount, priceX, priceBottom+mm(5),size,fonts.display,priceWidth);
   text(currency,priceX+fonts.display.widthOfTextAtSize(amount,size)+mm(3),priceBottom+mm(6),14,fonts.bold,mm(15));
-  text("AGRA PSK · Kłodzko · od 1991 r.", left, y+mm(6),7,fonts.semibold);
 }
 
 function drawCompactCare(page: import("pdf-lib").PDFPage, card: CardModel, left: number, width: number, top: number, fonts: Fonts, ink: ReturnType<typeof import("pdf-lib").rgb>, stacked: boolean, rows = false) {
