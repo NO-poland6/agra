@@ -9,7 +9,7 @@ export const SHOP_REGION = {
 } as const;
 
 export const SCALE_LEGEND =
-  "Zaznaczone: tak roślina chce rosnąć. Kreska przy mrozie: Kłodzko i przedgórze, strefa 6a, ok. −23 °C.";
+  "Podkreślone: zakres rośliny · Kłodzko: strefa 6a, ok. −23 °C.";
 
 export const WATER_STEPS = [
   { level: 1, caption: "susza" },
@@ -68,12 +68,11 @@ export function snowflakeLines(): SnowflakeLine[] {
       x: cx + Math.cos(angle) * radius,
       y: cy + Math.sin(angle) * radius,
     });
-    const root = point(8);
-    const tip = point(46);
+    const root = point(0);
+    const tip = point(42);
     lines.push({ x1: root.x, y1: root.y, x2: tip.x, y2: tip.y });
     for (const branch of [
-      { radius: 20, length: 13 },
-      { radius: 32, length: 9 },
+      { radius: 27, length: 12 },
     ]) {
       const base = point(branch.radius);
       for (const sign of [1, -1]) {

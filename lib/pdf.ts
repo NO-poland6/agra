@@ -9,7 +9,9 @@ import {
   resolveFrost,
   snowflakeLines,
 } from "./scales";
-import { MONTH_ROMAN, plantInfoUrl, sizeLabel } from "./shelf";
+import { MONTH_ROMAN, sizeLabel } from "./shelf";
+import { careSummary } from "./care-summary";
+import type { LabelVariant } from "./variants";
 import type { CardModel } from "./types";
 
 const MM = 72 / 25.4;
@@ -131,213 +133,131 @@ type Fonts = {
   displayItalic: import("pdf-lib").PDFFont;
 };
 
-const INK = { r: 0.106, g: 0.141, b: 0.094 };
 
 function drawCard(
-  page: import("pdf-lib").PDFPage,
-  card: CardModel,
-  photo: import("pdf-lib").PDFImage | null,
-  qr: import("pdf-lib").PDFImage | null,
-  x: number,
-  y: number,
-  fonts: Fonts,
+  page: import("pdf-lib").PDFPage, card: CardModel,
+  photo: import("pdf-lib").PDFImage | null, variant: LabelVariant,
+  x: number, y: number, fonts: Fonts,
 ) {
   const { rgb } = requireRgb();
-  const ink = rgb(INK.r, INK.g, INK.b);
-  const width = mm(148);
-  const height = mm(210);
-  page.drawRectangle({
-    x,
-    y,
-    width,
-    height,
-    borderColor: ink,
-    borderWidth: 1.1,
-    color: rgb(0.984, 0.973, 0.949),
-  });
-
-  const left = x + mm(7.5);
-  const right = x + width - mm(7.5);
-  const contentWidth = right - left;
-  const headerTop = y + height - mm(7.2);
-
-  page.drawText("AGRA PSK", {
-    x: left,
-    y: headerTop - mm(3.4),
-    size: 11,
-    font: fonts.bold,
-    color: ink,
-  });
-  page.drawText("Kłodzko · od 1991 r.", {
-    x: left,
-    y: headerTop - mm(7.4),
-    size: 8,
-    font: fonts.semibold,
-    color: ink,
-  });
-
-  const ruleY = headerTop - mm(10.2);
-  page.drawLine({
-    start: { x: left, y: ruleY },
-    end: { x: right, y: ruleY },
-    thickness: 1.5,
-    color: ink,
-  });
-
-  let cursor = ruleY - mm(1.6);
+  const ink = rgb(0.09, 0.09, 0.09);
+  const left = x + mm(variant === "d" ? 10 : 7);
+  const right = x + mm(variant === "d" ? 138 : 141);
+  const width = right - left;
+  const top = y + mm(204);
+  const text = (value: string, tx: number, ty: number, size: number, font = fonts.regular, maxWidth = width) =>
+    page.drawText(fitLine(value, font, size, maxWidth), { x: tx, y: ty, size, font, color: ink });
+  if (variant === "a" || variant === "c") page.drawRectangle({ x: x + mm(3), y: y + mm(3), width: mm(142), height: mm(204), borderWidth: 0.8, borderColor: ink });
+  text("AGRA PSK", left, top - mm(4), 11, fonts.bold);
+  text("Kłodzko · od 1991 r.", variant === "b" ? right - mm(34) : left, top - mm(variant === "b" ? 4 : 8), 8, fonts.semibold);
+  const rule = top - mm(11);
+  page.drawLine({ start: { x: left, y: rule }, end: { x: right, y: rule }, thickness: variant === "b" ? 2.8 : 0.8, color: ink });
+  const mainWidth = variant === "c" ? width - mm(40) : width;
+  let cursor = rule - mm(2);
   if (photo) {
-    const boxW = width - mm(8);
-    const photoLeft = x + mm(4);
-    const boxH = mm(104);
-    const scale = Math.max(boxW / photo.width, boxH / photo.height);
-    const drawW = photo.width * scale;
-    const drawH = photo.height * scale;
-    const imageX = photoLeft + (boxW - drawW) * 0.5;
-    const imageY = cursor - (boxH - drawH) * 0.38 - drawH;
-    const boxBottom = cursor - boxH;
-    const { pushGraphicsState, popGraphicsState, rectangle, clip, endPath } = requireClip();
-    page.pushOperators(pushGraphicsState(), rectangle(photoLeft, boxBottom, boxW, boxH), clip(), endPath());
-    page.drawImage(photo, { x: imageX, y: imageY, width: drawW, height: drawH });
-    page.pushOperators(popGraphicsState());
-    page.drawRectangle({
-      x: photoLeft,
-      y: boxBottom,
-      width: boxW,
-      height: boxH,
-      borderColor: ink,
-      borderWidth: 0.7,
-    });
-    if (qr) {
-      const qrSize = mm(13);
-      const pad = mm(1.1);
-      const qrX = photoLeft + boxW - qrSize - pad - mm(0.8);
-      const qrY = boxBottom + boxH - qrSize - pad - mm(3.4);
-      page.drawRectangle({
-        x: qrX - mm(0.8),
-        y: qrY - mm(3.2),
-        width: qrSize + mm(1.6),
-        height: qrSize + mm(4.4),
-        color: rgb(1, 1, 1),
-        borderColor: ink,
-        borderWidth: 0.6,
-      });
-      page.drawImage(qr, { x: qrX, y: qrY, width: qrSize, height: qrSize });
-      const wiki = "Wikipedia";
-      const wikiWidth = fonts.semibold.widthOfTextAtSize(wiki, 5.5);
-      page.drawText(wiki, {
-        x: qrX + (qrSize - wikiWidth) / 2,
-        y: qrY - mm(2.4),
-        size: 5.5,
-        font: fonts.semibold,
-        color: ink,
-      });
-    }
-    cursor = boxBottom;
+    const w = variant === "d" ? mm(30) : mainWidth;
+    const h = variant === "d" ? mm(30) : mm(74);
+    const px = variant === "d" ? right - w : left;
+    const pt = variant === "d" ? rule - mm(10) : cursor;
+    const scale = Math.max(w / photo.width, h / photo.height);
+    const ops = requireClip();
+    page.pushOperators(ops.pushGraphicsState());
+    if (variant === "d") {
+      const cx = px + w / 2, cy = pt - h / 2, r = w / 2, k = r * 0.55228475;
+      page.pushOperators(ops.moveTo(cx + r, cy), ops.appendBezierCurve(cx+r,cy+k,cx+k,cy+r,cx,cy+r), ops.appendBezierCurve(cx-k,cy+r,cx-r,cy+k,cx-r,cy), ops.appendBezierCurve(cx-r,cy-k,cx-k,cy-r,cx,cy-r), ops.appendBezierCurve(cx+k,cy-r,cx+r,cy-k,cx+r,cy), ops.closePath());
+    } else page.pushOperators(ops.rectangle(px, pt-h, w, h));
+    page.pushOperators(ops.clip(), ops.endPath());
+    page.drawImage(photo, { x: px + (w-photo.width*scale)/2, y: pt-h + (h-photo.height*scale)*0.62, width: photo.width*scale, height: photo.height*scale });
+    page.pushOperators(ops.popGraphicsState());
+    if (variant !== "d") cursor -= h;
     if (card.photoCredit) {
-      const creditSize = 6.2;
-      cursor -= mm(3);
-      const line = fitLine(card.photoCredit, fonts.regular, creditSize, contentWidth);
-      const lineWidth = fonts.regular.widthOfTextAtSize(line, creditSize);
-      page.drawText(line, {
-        x: right - lineWidth,
-        y: cursor,
-        size: creditSize,
-        font: fonts.regular,
-        color: ink,
-      });
-      cursor -= mm(1.6);
+      const creditWidth = variant === "d" ? w : mainWidth;
+      const lines = wrap(card.photoCredit, fonts.regular, variant === "d" ? 5 : 6, creditWidth).slice(0, variant === "d" ? 3 : 1);
+      lines.forEach((line, i) => text(line, px, pt-h-mm(2.5)-i*6, variant === "d" ? 5 : 6, fonts.regular, creditWidth));
+    }
+    if (variant !== "d") cursor -= mm(2);
+  }
+  if (variant === "d") cursor = rule - mm(20);
+  const nameWidth = variant === "d" && photo ? width-mm(36) : mainWidth;
+  const nameSize = variant === "d" ? 25 : card.polishName.length > 24 ? 17 : 22;
+  for (const line of wrap(card.polishName || "Nazwa rośliny", fonts.display, nameSize, nameWidth).slice(0, 2)) {
+    cursor -= nameSize * 0.95;
+    text(line, left, cursor, nameSize, fonts.display, nameWidth);
+  }
+  cursor -= mm(5);
+  text(card.latinName, left, cursor, 10, fonts.displayItalic, nameWidth);
+  cursor -= mm(5);
+  text(card.plantType.toLocaleUpperCase("pl"), left, cursor, 7.5, fonts.bold, mainWidth);
+  const dimensions = sizeLabel(card.height, card.width);
+  const dimensionWidth = fonts.semibold.widthOfTextAtSize(dimensions, 7);
+  const typeWidth = fonts.bold.widthOfTextAtSize(card.plantType.toLocaleUpperCase("pl"), 7.5);
+  if (typeWidth + dimensionWidth + mm(3) < mainWidth) {
+    text(dimensions, left + mainWidth - dimensionWidth, cursor, 7, fonts.semibold, dimensionWidth + 1);
+  } else {
+    cursor -= mm(4);
+    text(dimensions, left, cursor, 8, fonts.semibold, mainWidth);
+  }
+  cursor = drawBadges(page, card, left, left+mainWidth, cursor-mm(1), fonts, ink);
+  if (variant === "a") cursor = drawScales(page, card, left, mainWidth, cursor, fonts, ink);
+  else if (variant === "c") drawCompactCare(page, card, left+mainWidth+mm(5), mm(35), rule-mm(8), fonts, ink, true);
+  else cursor = drawCompactCare(page, card, left, width, cursor-mm(2), fonts, ink, variant === "d", variant === "d");
+  cursor = drawMonths(page, card, left, mainWidth, cursor, fonts, ink, rgb);
+  const floor = y + mm(variant === "d" ? 48 : 35);
+  const lines = wrap(card.description, fonts.regular, 9, mainWidth);
+  let lineIndex = 0;
+  while (lineIndex < lines.length && cursor - 11.5 > floor) {
+    cursor -= 11.5;
+    const last = cursor - 11.5 <= floor && lineIndex < lines.length - 1;
+    text(lines[lineIndex++] + (last ? "…" : ""), left, cursor, 9, fonts.regular, mainWidth);
+  }
+  const priceLeft = variant === "c" ? right-mm(60) : left;
+  const priceWidth = right-priceLeft;
+  const priceHeight = mm(variant === "d" ? 29 : 21);
+  const priceBottom = y+mm(12);
+  if (variant === "a" || variant === "c") page.drawRectangle({ x: priceLeft, y: priceBottom, width: priceWidth, height: priceHeight, borderWidth: 1.5, borderColor: ink });
+  if (variant === "b") page.drawLine({ start: {x:left,y:priceBottom+priceHeight},end:{x:right,y:priceBottom+priceHeight},thickness:2.8,color:ink });
+  const {amount, currency} = formatPriceParts(card.price);
+  const size = amount.replace(/\s/g, "").length > 6 ? 28 : variant === "d" ? 64 : 38;
+  const total = fonts.display.widthOfTextAtSize(amount,size)+mm(3)+fonts.bold.widthOfTextAtSize(currency,14);
+  const priceX = variant === "d" ? left : variant === "b" ? right-total : priceLeft+(priceWidth-total)/2;
+  text(amount, priceX, priceBottom+mm(5),size,fonts.display,priceWidth);
+  text(currency,priceX+fonts.display.widthOfTextAtSize(amount,size)+mm(3),priceBottom+mm(6),14,fonts.bold,mm(15));
+  text("AGRA PSK · Kłodzko · od 1991 r.", left, y+mm(6),7,fonts.semibold);
+}
+
+function drawCompactCare(page: import("pdf-lib").PDFPage, card: CardModel, left: number, width: number, top: number, fonts: Fonts, ink: ReturnType<typeof import("pdf-lib").rgb>, stacked: boolean, rows = false) {
+  const summary = careSummary(card), frost = resolveFrost(card);
+  const titles = ["STANOWISKO", "PODLEWANIE", "ODPORNOŚĆ NA MRÓZ"];
+  const values = [summary.light, summary.water, frost.value];
+  const col = stacked ? width : width/3;
+  for (let i=0;i<3;i++) {
+    const cx = left + (stacked ? 0 : i*col) + col/2;
+    const cy = top - (stacked ? i*mm(rows ? 14 : 26) : 0);
+    if (rows) {
+      page.drawText(titles[i],{x:left+mm(13),y:cy,size:6.5,font:fonts.bold,color:ink});
+      drawCareGlyph(page,i===0?"light":i===1?"water":"frost",left+mm(5),cy-mm(3),mm(9),card.lightTo,ink);
+      page.drawText(values[i],{x:left+mm(13),y:cy-mm(6),size:11,font:fonts.semibold,color:ink});
     } else {
-      cursor -= mm(2.2);
+      drawCentered(page,titles[i],cx,cy,6.5,fonts.bold,ink,col);
+      drawCareGlyph(page, i === 0 ? "light" : i === 1 ? "water" : "frost",cx,cy-mm(8),mm(12),card.lightTo,ink);
+      drawCentered(page,values[i],cx,cy-mm(18),9,fonts.semibold,ink,col);
     }
   }
+  const bottom = top-mm(rows ? 43 : stacked ? 77 : 25);
+  drawCentered(page,"Kłodzko · 6a · ok. −23 °C",left+width/2,bottom,6,fonts.regular,ink,width);
+  let next = bottom-mm(3);
+  for (const line of wrap(frost.note,fonts.regular,6,width)) { textNote(line); }
+  function textNote(line: string) { drawCentered(page,line,left+width/2,next,6,fonts.regular,ink,width); next-=mm(2.5); }
+  return next-mm(2);
+}
 
-  const nameSize = (card.polishName || "").length > 24 ? 15 : 18;
-  const nameLines = wrap(card.polishName || "Nazwa rośliny", fonts.display, nameSize, contentWidth).slice(0, 2);
-  for (const line of nameLines) {
-    cursor -= nameSize * 0.86;
-    page.drawText(line, { x: left, y: cursor, size: nameSize, font: fonts.display, color: ink });
-    cursor -= mm(0.6);
-  }
-
-  const latinSize = 10;
-  cursor -= latinSize * 0.35 + mm(1.2);
-  if (card.latinName) {
-    const latin = fitLine(card.latinName, fonts.displayItalic, latinSize, contentWidth);
-    page.drawText(latin, { x: left, y: cursor, size: latinSize, font: fonts.displayItalic, color: ink });
-  }
-  cursor -= mm(1.4);
-
-  if (card.plantType) {
-    const type = card.plantType.toLocaleUpperCase("pl");
-    cursor -= mm(3.2);
-    page.drawText(fitLine(type, fonts.semibold, 7.5, contentWidth), {
-      x: left,
-      y: cursor,
-      size: 7.5,
-      font: fonts.semibold,
-      color: ink,
-    });
-    cursor -= mm(1.6);
-  }
-
-  cursor = drawBadges(page, card, left, right, cursor, fonts, ink);
-  cursor = drawScales(page, card, left, contentWidth, cursor, fonts, ink);
-  cursor = drawMonths(page, card, left, contentWidth, cursor, fonts, ink, rgb);
-
-  const priceHeight = mm(16);
-  const priceBottom = y + mm(12.5);
-  const descSize = 9;
-  const descLeading = 11.5;
-  const descLines = wrap(card.description || "", fonts.regular, descSize, contentWidth).slice(0, 2);
-  const descFloor = priceBottom + priceHeight + mm(2.4);
-  for (const line of descLines) {
-    if (cursor - descLeading < descFloor) break;
-    cursor -= descLeading;
-    page.drawText(line, { x: left, y: cursor, size: descSize, font: fonts.regular, color: ink });
-  }
-
-  page.drawRectangle({
-    x: left,
-    y: priceBottom,
-    width: contentWidth,
-    height: priceHeight,
-    borderColor: ink,
-    borderWidth: mm(0.7),
-    color: rgb(0.953, 0.886, 0.643),
-  });
-  const { amount, currency } = formatPriceParts(card.price);
-  const amountSize = amount.replace(/\s/g, "").length > 6 ? 26 : 32;
-  const amountWidth = fonts.display.widthOfTextAtSize(amount, amountSize);
-  const currencySize = 13;
-  const currencyWidth = fonts.bold.widthOfTextAtSize(currency, currencySize);
-  const gap = mm(2);
-  const total = amountWidth + gap + currencyWidth;
-  const priceX = left + (contentWidth - total) / 2;
-  const priceBaseline = priceBottom + mm(4.4);
-  page.drawText(amount, {
-    x: priceX,
-    y: priceBaseline,
-    size: amountSize,
-    font: fonts.display,
-    color: ink,
-  });
-  page.drawText(currency, {
-    x: priceX + amountWidth + gap,
-    y: priceBaseline + mm(1.4),
-    size: currencySize,
-    font: fonts.bold,
-    color: ink,
-  });
-
-  const footer = "AGRA PSK · Kłodzko · od 1991 r.";
-  const footerWidth = fonts.semibold.widthOfTextAtSize(footer, 8);
-  page.drawText(footer, {
-    x: left + (contentWidth - footerWidth) / 2,
-    y: y + mm(6.4),
-    size: 8,
-    font: fonts.semibold,
-    color: ink,
-  });
+function drawCareGlyph(page: import("pdf-lib").PDFPage, kind: "light" | "water" | "frost", cx: number, cy: number, size: number, level: number, ink: ReturnType<typeof import("pdf-lib").rgb>) {
+  if (kind === "frost") { drawSnowflake(page,cx,cy,size,ink); return; }
+  const k=size/100;
+  if(kind === "water") { page.drawSvgPath("M50 8 C43 20 23 43 23 61 A27 27 0 0 0 77 61 C77 43 57 20 50 8Z",{x:cx-size/2,y:cy+size/2,scale:k,borderColor:ink,borderWidth:4}); return; }
+  page.drawCircle({x:cx,y:cy,size:20*k,borderColor:ink,borderWidth:4*k,color:level<2?ink:undefined});
+  if(level>=2 && level<4) page.drawSvgPath("M50 30 A20 20 0 0 0 50 70Z",{x:cx-size/2,y:cy+size/2,scale:k,color:ink});
+  for(let i=0;i<8;i++) { const a=i*Math.PI/4;page.drawLine({start:{x:cx+Math.cos(a)*32*k,y:cy+Math.sin(a)*32*k},end:{x:cx+Math.cos(a)*43*k,y:cy+Math.sin(a)*43*k},thickness:4*k,color:ink}); }
 }
 
 function drawBadges(
@@ -401,7 +321,6 @@ function drawSnowflake(
   cx: number,
   cy: number,
   size: number,
-  filled: boolean,
   ink: ReturnType<typeof import("pdf-lib").rgb>,
 ) {
   const scale = size / 100;
@@ -409,18 +328,11 @@ function drawSnowflake(
     page.drawLine({
       start: { x: cx + (line.x1 - 50) * scale, y: cy - (line.y1 - 50) * scale },
       end: { x: cx + (line.x2 - 50) * scale, y: cy - (line.y2 - 50) * scale },
-      thickness: filled ? 1.15 : 0.45,
+      thickness: size * 0.04,
       color: ink,
     });
   }
-  page.drawCircle({
-    x: cx,
-    y: cy,
-    size: filled ? size * 0.045 : size * 0.03,
-    color: filled ? ink : undefined,
-    borderColor: ink,
-    borderWidth: 0.4,
-  });
+
 }
 
 function drawScales(
@@ -455,52 +367,28 @@ function drawScales(
     for (let step = 1; step <= 5; step += 1) {
       const cellX = columnX + (step - 1) * (cell + cellGap);
       const cellCenter = cellX + cell / 2;
-      if (column.kind === "light") {
-        const on = step >= card.lightFrom && step <= card.lightTo;
-        page.drawRectangle({
-          x: cellX,
-          y: markY - mm(0.4),
-          width: cell,
-          height: mm(1.5),
-          borderColor: ink,
-          borderWidth: 0.5,
-          color: on ? ink : rgb(1, 1, 1),
-        });
-        drawCentered(page, String(step), cellCenter, markY + mm(1.5), 7, fonts.bold, ink, cell);
-      } else if (column.kind === "water") {
-        const on = step >= card.waterFrom && step <= card.waterTo;
-        page.drawEllipse({
-          x: cellCenter,
-          y: markY + mm(1.3),
-          xScale: mm(1.15),
-          yScale: mm(1.7),
-          borderColor: ink,
-          borderWidth: 0.7,
-          color: on ? ink : undefined,
-        });
-      } else {
-        const on = frost.known && step <= frost.level;
-        drawSnowflake(page, cellCenter, markY + mm(1.5), mm(6.4), on, ink);
-      }
+      const on = column.kind === "light" ? step >= card.lightFrom && step <= card.lightTo : column.kind === "water" ? step >= card.waterFrom && step <= card.waterTo : frost.known && step <= frost.level;
+      drawCareGlyph(page,column.kind,cellCenter,markY+mm(1.5),mm(6),step,ink);
+      page.drawLine({start:{x:cellX+cell*0.12,y:cursor-mm(13)},end:{x:cellX+cell*0.88,y:cursor-mm(13)},thickness:on?1.8:0.4,color:on?ink:rgb(0.7,0.7,0.7)});
       const caption = column.kind === "light" ? LIGHT_STEPS[step - 1].caption : column.kind === "water" ? WATER_STEPS[step - 1].caption : FROST_STEPS[step - 1].caption;
       drawCentered(page, caption, cellCenter, cursor - mm(11.4), 5.2, fonts.semibold, ink, cell + cellGap);
     }
     if (column.kind === "frost") {
       const markerX = columnX + width * 0.6;
       page.drawLine({
-        start: { x: markerX, y: cursor - mm(4.2) },
-        end: { x: markerX, y: cursor - mm(10.2) },
-        thickness: 1.1,
+        start: { x: markerX, y: cursor - mm(13.5) },
+        end: { x: markerX, y: cursor - mm(14.5) },
+        thickness: 0.5,
         color: ink,
       });
-      page.drawText("6a", { x: markerX + mm(0.4), y: cursor - mm(4.6), size: 5, font: fonts.bold, color: ink });
+
     }
     const value = column.kind === "light"
       ? rangeCaption(LIGHT_STEPS, card.lightFrom, card.lightTo)
       : column.kind === "water"
         ? rangeCaption(WATER_STEPS, card.waterFrom, card.waterTo)
         : frost.value;
-    drawCentered(page, value, center, cursor - mm(14.2), 6.4, fonts.bold, ink, width);
+    drawCentered(page, value, center, cursor - mm(16), 6.4, fonts.bold, ink, width);
     columnX += width + gap;
   });
   const legendWidth = fonts.regular.widthOfTextAtSize(SCALE_LEGEND, 6);
@@ -508,12 +396,12 @@ function drawScales(
   const legendTextWidth = fonts.regular.widthOfTextAtSize(legend, 6);
   page.drawText(legend, {
     x: left + (contentWidth - legendTextWidth) / 2,
-    y: cursor - mm(17.2),
+    y: cursor - mm(19),
     size: 6,
     font: fonts.regular,
     color: ink,
   });
-  let next = cursor - mm(19);
+  let next = cursor - mm(22);
   if (frost.note) {
     const note = fitLine(frost.note, fonts.semibold, 6.5, contentWidth);
     const noteWidth = fonts.semibold.widthOfTextAtSize(note, 6.5);
@@ -526,15 +414,7 @@ function drawScales(
     });
     next -= mm(3.2);
   }
-  const size = `WYMIAR  ${sizeLabel(card.height ?? "", card.width ?? "")}`;
-  page.drawText(fitLine(size, fonts.bold, 8, contentWidth), {
-    x: left,
-    y: next - mm(0.4),
-    size: 8,
-    font: fonts.bold,
-    color: ink,
-  });
-  return next - mm(3.4);
+  return next - mm(1);
 }
 
 function drawMonths(
@@ -552,7 +432,7 @@ function drawMonths(
   const boxWidth = (contentWidth - gap * 11) / 12;
   const boxHeight = mm(5.6);
   const bottom = cursor - boxHeight;
-  const sage = rgb(0.843, 0.894, 0.784);
+  const sage = ink;
   MONTH_ROMAN.forEach((label, index) => {
     const boxX = left + index * (boxWidth + gap);
     page.drawRectangle({
@@ -571,7 +451,7 @@ function drawMonths(
       y: bottom + mm(1.55),
       size,
       font: fonts.bold,
-      color: ink,
+      color: active.has(index + 1) ? rgb(1, 1, 1) : ink,
     });
   });
   const caption = active.size > 0 ? "kwitnienie albo główna ozdoba" : "miesiące ozdoby niepodane";
@@ -600,7 +480,7 @@ const rgbHolder: { rgb: typeof import("pdf-lib").rgb } = {
 
 type ClipOps = Pick<
   typeof import("pdf-lib"),
-  "pushGraphicsState" | "popGraphicsState" | "rectangle" | "clip" | "endPath"
+  "pushGraphicsState" | "popGraphicsState" | "rectangle" | "clip" | "endPath" | "moveTo" | "appendBezierCurve" | "closePath"
 >;
 
 const clipHolder: { ops: ClipOps | null } = { ops: null };
@@ -610,7 +490,7 @@ function requireClip(): ClipOps {
   return clipHolder.ops;
 }
 
-export async function downloadCardPdf(card: CardModel, mode: "a5" | "a4") {
+export async function downloadCardPdf(card: CardModel, mode: "a5" | "a4", variant: LabelVariant = "a") {
   const pdfLib = await import("pdf-lib");
   const { PDFDocument, rgb } = pdfLib;
   const fontkit = (await import("@pdf-lib/fontkit")).default;
@@ -635,26 +515,13 @@ export async function downloadCardPdf(card: CardModel, mode: "a5" | "a4") {
     displayItalic: await pdf.embedFont(displayItalic, { subset: true }),
   };
   const photo = await embedPhoto(pdf, card.photoDataUrl);
-  const infoUrl = plantInfoUrl(card.latinName, card.polishName);
-  let qr: import("pdf-lib").PDFImage | null = null;
-  if (infoUrl) {
-    const dataUrl = await import("qrcode").then((QRCode) =>
-      QRCode.toDataURL(infoUrl, {
-        margin: 0,
-        width: 180,
-        errorCorrectionLevel: "M",
-        color: { dark: "#1b2418", light: "#ffffff" },
-      }),
-    );
-    qr = await embedPhoto(pdf, dataUrl);
-  }
   if (mode === "a5") {
     const page = pdf.addPage([mm(148), mm(210)]);
-    drawCard(page, card, photo, qr, 0, 0, fonts);
+    drawCard(page, card, photo, variant, 0, 0, fonts);
   } else {
     const page = pdf.addPage([mm(297), mm(210)]);
-    drawCard(page, card, photo, qr, 0, 0, fonts);
-    drawCard(page, card, photo, qr, mm(149), 0, fonts);
+    drawCard(page, card, photo, variant, 0, 0, fonts);
+    drawCard(page, card, photo, variant, mm(149), 0, fonts);
     page.drawLine({
       start: { x: mm(148.5), y: mm(6) },
       end: { x: mm(148.5), y: mm(204) },

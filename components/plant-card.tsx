@@ -3,9 +3,9 @@
 import { useEffect, useRef } from "react";
 import { CareScales } from "@/components/care-scales";
 import { SizeIcon } from "@/components/care-icons";
-import { PlantQr } from "@/components/plant-qr";
+import type { LabelVariant } from "@/lib/variants";
 import { formatPriceParts } from "@/lib/format";
-import { MONTH_ROMAN, plantInfoUrl, sizeLabel } from "@/lib/shelf";
+import { MONTH_ROMAN, sizeLabel } from "@/lib/shelf";
 import type { CardModel } from "@/lib/types";
 
 const BRAND = "AGRA PSK · Kłodzko · od 1991 r.";
@@ -13,8 +13,10 @@ const BRAND = "AGRA PSK · Kłodzko · od 1991 r.";
 export function PlantCard({
   card,
   onOverflow,
+  variant = "a",
 }: {
   card: CardModel;
+  variant?: LabelVariant;
   onOverflow?: (clipped: boolean) => void;
 }) {
   const descRef = useRef<HTMLParagraphElement>(null);
@@ -22,29 +24,22 @@ export function PlantCard({
   const compactPrice = amount.replace(/\s/g, "").length > 6;
   const badges = (card.badges ?? []).slice(0, 3);
   const months = new Set(card.bloomMonths ?? []);
-  const infoUrl = plantInfoUrl(card.latinName, card.polishName);
   const size = sizeLabel(card.height ?? "", card.width ?? "");
 
   useEffect(() => {
     const node = descRef.current;
     if (!node || !onOverflow) return;
     onOverflow(node.scrollHeight > node.clientHeight + 2);
-  }, [card.badges, card.bloomMonths, card.description, card.photoCredit, card.photoDataUrl, card.polishName, onOverflow]);
+  }, [card.badges, card.bloomMonths, card.description, card.photoCredit, card.photoDataUrl, card.polishName, variant, onOverflow]);
 
   return (
-    <article className={card.photoDataUrl ? "shelf-card has-photo" : "shelf-card"} data-testid="shelf-card">
+    <article className={`shelf-card variant-${variant}${card.photoDataUrl ? " has-photo" : ""}`} data-variant={variant} data-testid="shelf-card">
       <div className="shelf-card-inner">
         <header className="shelf-band">
           <div>
             <p className="shelf-brand-name">AGRA PSK</p>
             <p className="shelf-brand-place">Kłodzko · od 1991 r.</p>
           </div>
-          {infoUrl && !card.photoDataUrl ? (
-            <div className="shelf-qr-block">
-              <PlantQr url={infoUrl} />
-              <span>Wikipedia</span>
-            </div>
-          ) : null}
         </header>
 
         {card.photoDataUrl ? (
@@ -56,12 +51,6 @@ export function PlantCard({
               alt={`Zdjęcie: ${card.polishName || "roślina"}`}
               data-testid="shelf-photo"
             />
-            {infoUrl ? (
-              <div className="shelf-qr-float">
-                <PlantQr url={infoUrl} />
-                <span>Wikipedia</span>
-              </div>
-            ) : null}
             {card.photoCredit ? (
               <figcaption className="shelf-credit" data-testid="shelf-credit">
                 {card.photoCredit}
@@ -88,7 +77,7 @@ export function PlantCard({
           </ul>
         ) : null}
 
-        <CareScales info={card} />
+        <CareScales info={card} compact={variant !== "a"} />
 
         <div className="shelf-months" data-testid="shelf-months" aria-label="Miesiące kwitnienia">
           {MONTH_ROMAN.map((label, index) => {
@@ -118,12 +107,12 @@ export function PlantCard({
   );
 }
 
-export function TwoUpSheet({ card }: { card: CardModel }) {
+export function TwoUpSheet({ card, variant = "a" }: { card: CardModel; variant?: LabelVariant }) {
   return (
     <div className="sheet-a4-row">
-      <PlantCard card={card} />
+      <PlantCard card={card} variant={variant} />
       <div className="cut-gutter" aria-hidden />
-      <PlantCard card={card} />
+      <PlantCard card={card} variant={variant} />
     </div>
   );
 }

@@ -44,14 +44,6 @@ export function parseBadges(value: string): string[] {
   return badges;
 }
 
-/** Adres Wikipedii zawiera tylko nazwę rośliny. Ceny i danych sklepu tu nie ma. */
-export function plantInfoUrl(latinName: string, polishName: string): string | null {
-  const query = (latinName || polishName).replace(/\s+/g, " ").trim();
-  if (!query) return null;
-  const params = new URLSearchParams({ search: query });
-  return `https://pl.wikipedia.org/w/index.php?${params.toString()}`;
-}
-
 export function withPlantDefaults(info: Partial<PlantInfo>): PlantInfo {
   return applyScaleDefaults({
     polishName: info.polishName ?? "",

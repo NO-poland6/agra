@@ -31,6 +31,8 @@ import { isPhotoCandidate, photoProxyUrl, type PhotoCandidate } from "@/lib/phot
 import { PLANTS } from "@/lib/plants";
 import type { CardModel, PlantInfo, PlantRecord, SourceKind } from "@/lib/types";
 
+import { LABEL_VARIANTS, VARIANT_STORAGE_KEY, labelVariant, type LabelVariant } from "@/lib/variants";
+
 const SOURCE_LABEL: Record<SourceKind, string> = {
   catalog: "katalog szkółki",
   cache: "pamięć przeglądarki",
@@ -82,6 +84,7 @@ function Field({
 }
 
 export function EtykietyApp() {
+  const [variant, setVariant] = useState<LabelVariant>("a");
   const [polishName, setPolishName] = useState("");
   const [latinName, setLatinName] = useState("");
   const [priceInput, setPriceInput] = useState("");
@@ -111,6 +114,28 @@ export function EtykietyApp() {
   const candidatesRef = useRef<PhotoCandidate[]>([]);
   const currentPhotoRef = useRef<PhotoCandidate | null>(null);
   const plantNames = useRef({ polishName: "", latinName: "" });
+
+  useEffect(() => {
+    const restore = () => {
+      let saved: string | null = null;
+      try { saved = localStorage.getItem(VARIANT_STORAGE_KEY); } catch {}
+      const next = labelVariant(new URLSearchParams(window.location.search).get("wariant")) ?? labelVariant(saved) ?? "a";
+      setVariant(next);
+      try { localStorage.setItem(VARIANT_STORAGE_KEY, next); } catch {}
+    };
+    restore();
+    window.addEventListener("popstate", restore);
+    return () => window.removeEventListener("popstate", restore);
+  }, []);
+
+  function chooseVariant(value: string) {
+    const next = labelVariant(value) ?? "a";
+    setVariant(next);
+    try { localStorage.setItem(VARIANT_STORAGE_KEY, next); } catch {}
+    const url = new URL(window.location.href);
+    url.searchParams.set("wariant", next);
+    window.history.replaceState(null, "", url);
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -520,7 +545,7 @@ export function EtykietyApp() {
     writeRecent(info, card.price);
     try {
       const { downloadCardPdf } = await import("@/lib/pdf");
-      await downloadCardPdf(card, mode);
+      await downloadCardPdf(card, mode, variant);
     } catch {
       setPdfError("Nie udało się zbudować PDF. Użyj przycisku drukowania i wybierz „Zapisz jako PDF”.");
     }
@@ -939,17 +964,23 @@ export function EtykietyApp() {
                 </Button>
               </div>
             </div>
+            <div className="mb-3 grid gap-1.5">
+              <Label htmlFor="label-variant">Wygląd etykiety</Label>
+              <select id="label-variant" className="h-11 rounded-md border border-border bg-background px-3 text-sm" value={variant} onChange={(event) => chooseVariant(event.target.value)}>
+                {Object.entries(LABEL_VARIANTS).map(([key, name]) => <option key={key} value={key}>{key.toUpperCase()} — {name}</option>)}
+              </select>
+            </div>
             <div className="rounded-xl bg-[#d5cec1] p-3 sm:p-5">
               {preview === "a5" ? (
                 <ScaledFrame widthMm={148} heightMm={210}>
                   <div className="shadow-[0_12px_28px_rgba(40,32,20,0.18)]">
-                    {card ? <PlantCard card={card} onOverflow={setClipped} /> : <EmptyCard />}
+                    {card ? <PlantCard variant={variant} card={card} onOverflow={setClipped} /> : <EmptyCard />}
                   </div>
                 </ScaledFrame>
               ) : card ? (
                 <ScaledFrame widthMm={297} heightMm={210}>
                   <div className="shadow-[0_12px_28px_rgba(40,32,20,0.18)]">
-                    <TwoUpSheet card={card} />
+                    <TwoUpSheet variant={variant} card={card} />
                   </div>
                 </ScaledFrame>
               ) : (
@@ -968,10 +999,10 @@ export function EtykietyApp() {
       {card ? (
         <>
           <div className="print-only sheet-a5">
-            <PlantCard card={card} />
+            <PlantCard variant={variant} card={card} />
           </div>
           <div className="print-only sheet-a4">
-            <TwoUpSheet card={card} />
+            <TwoUpSheet variant={variant} card={card} />
           </div>
         </>
       ) : null}

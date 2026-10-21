@@ -185,40 +185,6 @@
   letter-spacing: 0.04em;
 }
 
-.shelf-qr-block {
-  display: grid;
-  justify-items: center;
-  gap: 0.4mm;
-  font-size: 6pt;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.shelf-qr {
-  display: block;
-  width: 12mm;
-  height: 12mm;
-  background: #fff;
-}
-
-.shelf-qr-float {
-  position: absolute;
-  top: 1.2mm;
-  right: 1.2mm;
-  z-index: 2;
-  display: grid;
-  justify-items: center;
-  gap: 0.3mm;
-  padding: 0.7mm 0.7mm 0.4mm;
-  background: #fff;
-  border: 0.28mm solid #1b2418;
-  font-size: 5.5pt;
-  font-weight: 750;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-
 .shelf-figure {
   position: relative;
   margin: 1.2mm 0 0;
@@ -226,27 +192,15 @@
 }
 
 .shelf-card.has-photo .shelf-figure {
-  flex: 1 1 auto;
-  display: flex;
-  flex-direction: column;
-  margin-left: -3mm;
-  margin-right: -3mm;
+  flex: 0 0 auto;
 }
-
 .shelf-photo {
   display: block;
   width: 100%;
-  height: 46mm;
+  height: 76mm;
   object-fit: cover;
   object-position: center 36%;
-  border: 0.28mm solid #1b2418;
-  background: #efeae0;
-}
-
-.shelf-card.has-photo .shelf-photo {
-  flex: 1 1 auto;
-  height: auto;
-  min-height: 0;
+  background: #eee;
 }
 
 .shelf-credit {
@@ -385,89 +339,12 @@
   color: #1b2418;
 }
 
-.scale-num {
-  font-size: 7pt;
-  font-weight: 750;
-  line-height: 1;
-}
-
-.scale-bar {
-  display: block;
-  width: 100%;
-  height: 1.5mm;
-  border: 0.25mm solid #1b2418;
-  background: #fff;
-}
-
-.scale-cell.is-on .scale-bar {
-  background: #1b2418;
-}
-
-.scale-cap {
-  font-size: 5.4pt;
-  font-weight: 650;
-  line-height: 1.05;
-  text-align: center;
-}
-
-.drop,
-.flake {
-  display: block;
-  width: 100%;
-  height: 5.8mm;
-  color: #1b2418;
-}
-
-.drop path {
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.6;
-}
-
-.drop.is-on path {
-  fill: currentColor;
-}
-
-.flake line {
-  stroke: currentColor;
-  stroke-linecap: round;
-  fill: none;
-  stroke-width: 1.8;
-}
-
-.flake.is-on line {
-  stroke-width: 4.4;
-}
-
-.flake circle {
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.6;
-}
-
-.flake.is-on circle {
-  fill: currentColor;
-  stroke: none;
-}
-
-.scale-shop {
-  position: absolute;
-  left: 60%;
-  top: 0;
-  bottom: 3.4mm;
-  border-left: 0.45mm solid #1b2418;
-  pointer-events: none;
-}
-
-.scale-shop::after {
-  content: "6a";
-  position: absolute;
-  left: 0.5mm;
-  top: -0.2mm;
-  font-size: 5pt;
-  font-weight: 800;
-  line-height: 1;
-}
+.care-glyph { display: block; width: 100%; height: 6mm; }
+.scale-cap { font-size: 5.4pt; line-height: 1.2; text-align: center; white-space: nowrap; }
+.scale-selection { width: 75%; height: 0.6mm; border-bottom: 0.25mm solid #bbb; }
+.scale-cell.is-on .scale-selection { border-bottom: 0.7mm solid #181818; }
+.scale-shop { position: absolute; left: 60%; bottom: -1.2mm; width: 0; height: 1mm; border-left: 0.25mm solid #181818; }
+.care-single .care-glyph { height: 13mm; }
 
 .scale-value {
   margin: 0.4mm 0 0;
@@ -673,3 +550,79 @@
     page-break-inside: avoid;
   }
 }
+/* Wspólna siatka drukarska: wszystkie wymiary pozostają w milimetrach. */
+.shelf-card { background: #fff; color: #181818; padding: 6mm 7mm 5mm; }
+.shelf-card-inner > * { flex-shrink: 0; }
+.shelf-band { border-bottom-width: 0.4mm; }
+.shelf-card .shelf-name { margin-top: 2.5mm; font-size: 23pt; line-height: 1.05; }
+.shelf-card .shelf-name.is-long { font-size: 18pt; }
+.shelf-type { margin-top: 1.5mm; }
+.shelf-badges { margin-top: 2mm; }
+.shelf-badges li { border-radius: 0; border-width: 0 0 0.25mm; padding: 0.5mm 1mm; }
+.shelf-care { margin-top: 3mm; padding: 2.5mm 0; border-top: 0.25mm solid; border-bottom: 0.25mm solid; }
+.shelf-scales { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 3mm; }
+.scale-heading { min-height: 3mm; font-size: 6.5pt; margin-bottom: 1.5mm; letter-spacing: 0.04em; }
+.scale-value { margin-top: 1.5mm; font-size: 7.5pt; }
+.scale-legend, .scale-note { margin-top: 1.5mm; font-size: 6pt; }
+.shelf-months { margin-top: 2mm; }
+.shelf-month { border-color: #aaa; }
+.shelf-month.is-on { background: #181818; color: #fff; border-color: #181818; }
+.shelf-desc { margin-top: 2mm; font-size: 10pt; line-height: 1.3; -webkit-line-clamp: 3; line-clamp: 3; }
+.shelf-card .shelf-bottom { margin-top: auto; padding-top: 2mm; }
+.shelf-price { background: #fff; border-width: 0.6mm; min-height: 19mm; align-items: center; }
+.shelf-price-amount { font-size: 38pt; }
+.shelf-footer { font-size: 7pt; }
+.variant-b::before { border: 0; }
+.variant-b .shelf-band { flex-direction: row; border-bottom: 1mm solid; }
+.variant-b .shelf-band > div { display: flex; align-items: baseline; justify-content: space-between; width: 100%; }
+.variant-b .shelf-figure { margin: 2mm -2mm 0; }
+.variant-b .shelf-care { padding: 3mm 0; border-width: 0.5mm; }
+.variant-b .shelf-scales > section + section { border-left: 0.25mm solid #aaa; }
+.variant-b .scale-value { font-size: 10pt; }
+.variant-b .shelf-price { border: 0; border-top: 1mm solid; justify-content: flex-end; }
+.variant-b .shelf-price-amount { font-size: 42pt; }
+.variant-c .shelf-card-inner { display: grid; grid-template-columns: minmax(0, 1fr) 35mm; column-gap: 5mm; grid-template-rows: auto auto auto auto auto auto auto auto 1fr auto; }
+.variant-c .shelf-band { grid-column: 1 / -1; }
+.variant-c .shelf-figure, .variant-c .shelf-name, .variant-c .shelf-latin, .variant-c .shelf-type, .variant-c .shelf-badges, .variant-c .shelf-months, .variant-c .shelf-month-caption, .variant-c .shelf-desc { grid-column: 1; }
+.variant-c .shelf-care { grid-column: 2; grid-row: 2 / 10; border: 0; border-left: 0.3mm solid; padding: 4mm 0 0 4mm; margin-top: 2mm; }
+.variant-c .shelf-scales { grid-template-columns: 1fr; gap: 7mm; }
+.variant-c .scale-heading { font-size: 6.5pt; }
+.variant-c .scale-value { font-size: 9pt; }
+.variant-c .shelf-type { flex-wrap: wrap; }
+.variant-c .shelf-bottom { grid-column: 1 / -1; display: flex; align-items: end; flex-direction: row-reverse; gap: 3mm; }
+.variant-c .shelf-price { width: 60mm; min-height: 23mm; border-radius: 3mm 0 0; }
+.variant-c .shelf-footer { flex: 1; text-align: left; padding-bottom: 2mm; }
+.variant-c .shelf-desc { -webkit-line-clamp: 5; line-clamp: 5; }
+.variant-c .shelf-month { font-size: 5.5pt; }
+.variant-d::before { border: 0; }
+.variant-d { padding: 10mm; }
+.variant-d .shelf-band { border-bottom: 0.25mm solid; padding-bottom: 4mm; }
+.variant-d .shelf-figure { position: absolute; top: 26mm; right: 0; width: 30mm; }
+.variant-d .shelf-photo { width: 30mm; height: 30mm; border-radius: 50%; }
+.variant-d .shelf-credit { white-space: normal; font-size: 5pt; text-align: center; }
+.variant-d.has-photo .shelf-name, .variant-d.has-photo .shelf-latin { width: calc(100% - 36mm); }
+.variant-d .shelf-name { margin-top: 14mm; font-size: 29pt; }
+.variant-d .shelf-name.is-long { font-size: 24pt; }
+.variant-d .shelf-type { margin-top: 5mm; }
+.variant-d .shelf-care { border: 0; margin-top: 7mm; padding: 0; }
+.variant-d .shelf-scales { grid-template-columns: 1fr; gap: 3mm; }
+.variant-d .shelf-scales section { display: grid; grid-template-columns: 10mm 1fr; column-gap: 3mm; }
+.variant-d .scale-heading { grid-column: 2; text-align: left; margin-bottom: 0; }
+.variant-d .care-single { grid-column: 1; grid-row: 1 / 3; }
+.variant-d .care-single .care-glyph { height: 9mm; }
+.variant-d .scale-value { grid-column: 2; text-align: left; font-size: 11pt; margin-top: 0; }
+.variant-d .scale-legend, .variant-d .scale-note { text-align: left; }
+.variant-d .shelf-months { margin-top: 5mm; }
+.variant-d .shelf-desc { margin-top: 4mm; -webkit-line-clamp: 4; line-clamp: 4; }
+.variant-d .shelf-price { border: 0; justify-content: flex-start; padding-left: 0; min-height: 30mm; }
+.variant-d .shelf-price-amount { font-size: 64pt; letter-spacing: -0.05em; }
+.variant-d .shelf-price-amount.is-long { font-size: 42pt; }
+.variant-d .shelf-footer { text-align: left; border-top: 0.25mm solid; padding-top: 3mm; }
+.shelf-photo { height: 74mm; }
+.shelf-card.has-photo .shelf-bottom { margin-top: auto; }
+.variant-a .shelf-care, .variant-b .shelf-care { padding-top: 2mm; padding-bottom: 2mm; }
+.variant-a .shelf-desc, .variant-b .shelf-desc { font-size: 9pt; }
+.variant-a .shelf-price, .variant-b .shelf-price { min-height: 17mm; }
+.shelf-card.variant-d .shelf-name { margin-top: 12mm; min-height: 24mm; font-size: 29pt; }
+.shelf-card.variant-d .shelf-name.is-long { font-size: 24pt; }
+.variant-d .shelf-figure { top: 23mm; }

@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { PLANTS } from "./plants";
 import { parsePlantResponse } from "./parse-plant";
-import { plantInfoUrl } from "./shelf";
 import {
   SHOP_REGION,
   adjustRange,
@@ -53,17 +52,17 @@ test("progi mrozu i strefa USDA", () => {
   assert.equal(missing.level, 0);
 });
 
-test("zakres stanowiska i adres bez ceny", () => {
+test("zakres stanowiska i symetryczna geometria płatka", () => {
   assert.deepEqual(adjustRange(4, 5, 3), [3, 5]);
   assert.deepEqual(adjustRange(2, 4, 2), [3, 4]);
   assert.deepEqual(adjustRange(0, 0, 5), [5, 5]);
   const arms = snowflakeLines();
   assert.ok(arms.length >= 18);
-  const url = plantInfoUrl("Lavandula angustifolia", "Lawenda wąskolistna");
-  assert.ok(url?.includes("Lavandula"));
-  assert.equal(url?.includes("19,99"), false);
-  assert.equal(url?.includes("AGRA"), false);
-  assert.equal(url?.includes("zł"), false);
+  assert.equal(arms.length, 18);
+  for (const arm of arms) {
+    const rotated = { x1: 100-arm.x1, y1: 100-arm.y1, x2: 100-arm.x2, y2: 100-arm.y2 };
+    assert.ok(arms.some((line) => Object.keys(rotated).every((key) => Math.abs(line[key as keyof typeof line] - rotated[key as keyof typeof rotated]) < 0.0001)));
+  }
 });
 
 test("odpowiedź modelu czyta zakresy, miesiące i strefę", () => {
