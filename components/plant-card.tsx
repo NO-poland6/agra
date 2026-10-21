@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { FrostIcon, LightIcon, SizeIcon, WaterIcon } from "@/components/care-icons";
+import { CareScales } from "@/components/care-scales";
+import { SizeIcon } from "@/components/care-icons";
 import { PlantQr } from "@/components/plant-qr";
 import { formatPriceParts } from "@/lib/format";
-import { FROST_CAPTION, LIGHT_LABEL, WATERING_LABEL } from "@/lib/labels";
 import { MONTH_ROMAN, plantInfoUrl, sizeLabel } from "@/lib/shelf";
 import type { CardModel } from "@/lib/types";
 
@@ -23,7 +23,6 @@ export function PlantCard({
   const badges = (card.badges ?? []).slice(0, 3);
   const months = new Set(card.bloomMonths ?? []);
   const infoUrl = plantInfoUrl(card.latinName, card.polishName);
-  const frostValue = card.hardinessC?.trim() || FROST_CAPTION[card.frostLabel];
   const size = sizeLabel(card.height ?? "", card.width ?? "");
 
   useEffect(() => {
@@ -40,7 +39,7 @@ export function PlantCard({
             <p className="shelf-brand-name">AGRA PSK</p>
             <p className="shelf-brand-place">Kłodzko · od 1991 r.</p>
           </div>
-          {infoUrl ? (
+          {infoUrl && !card.photoDataUrl ? (
             <div className="shelf-qr-block">
               <PlantQr url={infoUrl} />
               <span>Wikipedia</span>
@@ -57,6 +56,12 @@ export function PlantCard({
               alt={`Zdjęcie: ${card.polishName || "roślina"}`}
               data-testid="shelf-photo"
             />
+            {infoUrl ? (
+              <div className="shelf-qr-float">
+                <PlantQr url={infoUrl} />
+                <span>Wikipedia</span>
+              </div>
+            ) : null}
             {card.photoCredit ? (
               <figcaption className="shelf-credit" data-testid="shelf-credit">
                 {card.photoCredit}
@@ -67,7 +72,13 @@ export function PlantCard({
 
         <h2 className={card.polishName.length > 24 ? "shelf-name is-long" : "shelf-name"}>{card.polishName || "Nazwa rośliny"}</h2>
         {card.latinName ? <p className="shelf-latin">{card.latinName}</p> : <p className="shelf-latin is-empty">nazwa łacińska</p>}
-        {card.plantType ? <p className="shelf-type">{card.plantType}</p> : null}
+        <p className="shelf-type">
+          {card.plantType ? <span>{card.plantType}</span> : null}
+          <span className="shelf-size-inline">
+            <SizeIcon />
+            {size}
+          </span>
+        </p>
 
         {badges.length > 0 ? (
           <ul className="shelf-badges" data-testid="shelf-badges">
@@ -77,28 +88,7 @@ export function PlantCard({
           </ul>
         ) : null}
 
-        <div className="shelf-icons">
-          <div className="shelf-icon-col">
-            <LightIcon light={card.light} />
-            <p className="shelf-icon-value">{LIGHT_LABEL[card.light]}</p>
-            <p className="shelf-icon-label">Światło</p>
-          </div>
-          <div className="shelf-icon-col">
-            <WaterIcon watering={card.watering} />
-            <p className="shelf-icon-value">{WATERING_LABEL[card.watering]}</p>
-            <p className="shelf-icon-label">Woda</p>
-          </div>
-          <div className="shelf-icon-col">
-            <FrostIcon frost={card.frostLabel} />
-            <p className="shelf-icon-value">{frostValue}</p>
-            <p className="shelf-icon-label">Mróz</p>
-          </div>
-          <div className="shelf-icon-col">
-            <SizeIcon />
-            <p className="shelf-icon-value">{size}</p>
-            <p className="shelf-icon-label">Wys. × szer.</p>
-          </div>
-        </div>
+        <CareScales info={card} />
 
         <div className="shelf-months" data-testid="shelf-months" aria-label="Miesiące kwitnienia">
           {MONTH_ROMAN.map((label, index) => {

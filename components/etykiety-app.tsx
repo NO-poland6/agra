@@ -5,14 +5,8 @@ import { FileDown, Printer, Sprout } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { CareScaleEditor } from "@/components/care-scales";
 import { EmptyCard, PlantCard, TwoUpSheet } from "@/components/plant-card";
 import { PhotoPicker, type PhotoSearchStatus } from "@/components/photo-picker";
 import { ScaledFrame } from "@/components/scaled-frame";
@@ -29,14 +23,13 @@ import {
 } from "@/lib/photo-cache";
 import { formatPrice } from "@/lib/format";
 import { parsePrice } from "@/lib/format";
-import { FROST_ITEMS, LIGHT_ITEMS, WATERING_ITEMS } from "@/lib/labels";
 import { findPlantById, interpretMatches, searchPlants, type MatchHit } from "@/lib/match";
 import { normalize } from "@/lib/normalize";
 import { BADGE_SUGGESTIONS, MONTH_ROMAN, parseBadges, withPlantDefaults } from "@/lib/shelf";
 import { buildGeneratePayload } from "@/lib/plant-query";
 import { isPhotoCandidate, photoProxyUrl, type PhotoCandidate } from "@/lib/photos";
 import { PLANTS } from "@/lib/plants";
-import type { CardModel, FrostLabel, Light, PlantInfo, PlantRecord, SourceKind, Watering } from "@/lib/types";
+import type { CardModel, PlantInfo, PlantRecord, SourceKind } from "@/lib/types";
 
 const SOURCE_LABEL: Record<SourceKind, string> = {
   catalog: "katalog szkółki",
@@ -60,6 +53,11 @@ function toInfo(plant: PlantRecord): PlantInfo {
     hardinessC: plant.hardinessC,
     bloomMonths: plant.bloomMonths,
     badges: plant.badges,
+    waterFrom: plant.waterFrom,
+    waterTo: plant.waterTo,
+    lightFrom: plant.lightFrom,
+    lightTo: plant.lightTo,
+    usdaZone: plant.usdaZone,
   };
 }
 
@@ -350,6 +348,11 @@ export function EtykietyApp() {
       hardinessC: "",
       bloomMonths: [],
       badges: [],
+      waterFrom: 0,
+      waterTo: 0,
+      lightFrom: 0,
+      lightTo: 0,
+      usdaZone: "",
     };
     apply(plant, "manual", message, priceValue);
   }
@@ -866,7 +869,7 @@ export function EtykietyApp() {
                       onChange={(event) => patch({ width: event.target.value })}
                     />
                   </Field>
-                  <Field label="Mróz, skrót" htmlFor="edit-mroz" hint="Na przykład −20 °C. Puste, gdy nie znasz liczby.">
+                  <Field label="Mróz, temperatura" htmlFor="edit-mroz" hint="Najniższa temperatura, np. −20 °C. Puste, gdy nie znasz liczby.">
                     <Input
                       id="edit-mroz"
                       className="h-10 bg-background"
@@ -874,72 +877,17 @@ export function EtykietyApp() {
                       onChange={(event) => patch({ hardinessC: event.target.value })}
                     />
                   </Field>
-                </div>
-                <div className="grid gap-3">
-                  <Field label="Podlewanie" htmlFor="edit-woda">
-                    <Select
-                      value={info.watering}
-                      items={WATERING_ITEMS}
-                      onValueChange={(value) => {
-                        if (value === "low" || value === "moderate" || value === "high") patch({ watering: value satisfies Watering });
-                      }}
-                    >
-                      <SelectTrigger id="edit-woda" className="w-full bg-background">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {WATERING_ITEMS.map((item) => (
-                          <SelectItem key={item.value} value={item.value}>
-                            {item.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </Field>
-                  <Field label="Stanowisko" htmlFor="edit-swiatlo">
-                    <Select
-                      value={info.light}
-                      items={LIGHT_ITEMS}
-                      onValueChange={(value) => {
-                        if (value === "sun" || value === "partial" || value === "shade") patch({ light: value satisfies Light });
-                      }}
-                    >
-                      <SelectTrigger id="edit-swiatlo" className="w-full bg-background">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {LIGHT_ITEMS.map((item) => (
-                          <SelectItem key={item.value} value={item.value}>
-                            {item.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </Field>
-                  <Field label="Mrozoodporność" htmlFor="edit-mroz">
-                    <Select
-                      value={info.frostLabel}
-                      items={FROST_ITEMS}
-                      onValueChange={(value) => {
-                        if (value === "mrozoodporna" || value === "wymaga okrycia" || value === "nie zimuje w gruncie") {
-                          patch({ frostLabel: value satisfies FrostLabel });
-                        }
-                      }}
-                    >
-                      <SelectTrigger id="edit-mroz" className="w-full bg-background">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {FROST_ITEMS.map((item) => (
-                          <SelectItem key={item.value} value={item.value}>
-                            {item.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                  <Field label="Strefa USDA" htmlFor="edit-strefa" hint="Na przykład 6b. Puste, gdy nieznana.">
+                    <Input
+                      id="edit-strefa"
+                      className="h-10 bg-background"
+                      value={info.usdaZone}
+                      onChange={(event) => patch({ usdaZone: event.target.value })}
+                    />
                   </Field>
                 </div>
-                <Field label="Dopisek o zimie" htmlFor="edit-mroz-szczegoly" hint="Na przykład: do ok. -20 °C przy suchym drenażu.">
+                <CareScaleEditor info={info} onChange={patch} />
+                <Field label="Dopisek o zimie" htmlFor="edit-mroz-szczegoly" hint="Tylko dopisek, na przykład: okryć młode rośliny na zimę.">
                   <Input
                     id="edit-mroz-szczegoly"
                     className="h-10 bg-background"

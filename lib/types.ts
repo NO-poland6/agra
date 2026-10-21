@@ -29,6 +29,14 @@ export type PlantInfo = {
   bloomMonths: number[];
   /** Krótkie cechy, np. "miododajna". */
   badges: string[];
+  /** Skala wody 1–5. Zero oznacza: wylicz ze starego pola watering. */
+  waterFrom: number;
+  waterTo: number;
+  /** Skala światła 1 (cień) – 5 (pełne słońce). */
+  lightFrom: number;
+  lightTo: number;
+  /** Strefa USDA, np. "6b". Pusty string, gdy nieznana. */
+  usdaZone: string;
 };
 
 export type PlantRecord = PlantInfo & {

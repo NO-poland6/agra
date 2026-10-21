@@ -1,6 +1,14 @@
 import { fileSlug } from "./normalize";
 import { formatPriceParts } from "./format";
-import { FROST_CAPTION, LIGHT_LABEL, WATERING_LABEL } from "./labels";
+import {
+  FROST_STEPS,
+  LIGHT_STEPS,
+  SCALE_LEGEND,
+  WATER_STEPS,
+  rangeCaption,
+  resolveFrost,
+  snowflakeLines,
+} from "./scales";
 import { MONTH_ROMAN, plantInfoUrl, sizeLabel } from "./shelf";
 import type { CardModel } from "./types";
 
@@ -168,23 +176,7 @@ function drawCard(
     color: ink,
   });
 
-  let ruleY = headerTop - mm(10.2);
-  if (qr) {
-    const qrSize = mm(14);
-    const qrX = right - qrSize;
-    const qrY = headerTop - qrSize + mm(1);
-    page.drawImage(qr, { x: qrX, y: qrY, width: qrSize, height: qrSize });
-    const wiki = "Wikipedia";
-    const wikiWidth = fonts.semibold.widthOfTextAtSize(wiki, 6);
-    page.drawText(wiki, {
-      x: qrX + (qrSize - wikiWidth) / 2,
-      y: qrY - mm(2.8),
-      size: 6,
-      font: fonts.semibold,
-      color: ink,
-    });
-    ruleY = qrY - mm(5.2);
-  }
+  const ruleY = headerTop - mm(10.2);
   page.drawLine({
     start: { x: left, y: ruleY },
     end: { x: right, y: ruleY },
@@ -192,28 +184,54 @@ function drawCard(
     color: ink,
   });
 
-  let cursor = ruleY - mm(2.4);
+  let cursor = ruleY - mm(1.6);
   if (photo) {
-    const boxW = contentWidth;
-    const boxH = mm(card.photoCredit ? 32 : 36);
+    const boxW = width - mm(8);
+    const photoLeft = x + mm(4);
+    const boxH = mm(104);
     const scale = Math.max(boxW / photo.width, boxH / photo.height);
     const drawW = photo.width * scale;
     const drawH = photo.height * scale;
-    const imageX = left + (boxW - drawW) * 0.5;
-    const imageY = cursor - (boxH - drawH) * 0.42 - drawH;
+    const imageX = photoLeft + (boxW - drawW) * 0.5;
+    const imageY = cursor - (boxH - drawH) * 0.38 - drawH;
     const boxBottom = cursor - boxH;
     const { pushGraphicsState, popGraphicsState, rectangle, clip, endPath } = requireClip();
-    page.pushOperators(pushGraphicsState(), rectangle(left, boxBottom, boxW, boxH), clip(), endPath());
+    page.pushOperators(pushGraphicsState(), rectangle(photoLeft, boxBottom, boxW, boxH), clip(), endPath());
     page.drawImage(photo, { x: imageX, y: imageY, width: drawW, height: drawH });
     page.pushOperators(popGraphicsState());
     page.drawRectangle({
-      x: left,
+      x: photoLeft,
       y: boxBottom,
       width: boxW,
       height: boxH,
       borderColor: ink,
       borderWidth: 0.7,
     });
+    if (qr) {
+      const qrSize = mm(13);
+      const pad = mm(1.1);
+      const qrX = photoLeft + boxW - qrSize - pad - mm(0.8);
+      const qrY = boxBottom + boxH - qrSize - pad - mm(3.4);
+      page.drawRectangle({
+        x: qrX - mm(0.8),
+        y: qrY - mm(3.2),
+        width: qrSize + mm(1.6),
+        height: qrSize + mm(4.4),
+        color: rgb(1, 1, 1),
+        borderColor: ink,
+        borderWidth: 0.6,
+      });
+      page.drawImage(qr, { x: qrX, y: qrY, width: qrSize, height: qrSize });
+      const wiki = "Wikipedia";
+      const wikiWidth = fonts.semibold.widthOfTextAtSize(wiki, 5.5);
+      page.drawText(wiki, {
+        x: qrX + (qrSize - wikiWidth) / 2,
+        y: qrY - mm(2.4),
+        size: 5.5,
+        font: fonts.semibold,
+        color: ink,
+      });
+    }
     cursor = boxBottom;
     if (card.photoCredit) {
       const creditSize = 6.2;
@@ -263,7 +281,7 @@ function drawCard(
   }
 
   cursor = drawBadges(page, card, left, right, cursor, fonts, ink);
-  cursor = drawFacts(page, card, left, contentWidth, cursor, fonts, ink);
+  cursor = drawScales(page, card, left, contentWidth, cursor, fonts, ink);
   cursor = drawMonths(page, card, left, contentWidth, cursor, fonts, ink, rgb);
 
   const priceHeight = mm(16);
@@ -363,7 +381,49 @@ function drawBadges(
   return bottom - mm(2.2);
 }
 
-function drawFacts(
+function drawCentered(
+  page: import("pdf-lib").PDFPage,
+  text: string,
+  center: number,
+  y: number,
+  size: number,
+  font: import("pdf-lib").PDFFont,
+  ink: ReturnType<typeof import("pdf-lib").rgb>,
+  width: number,
+) {
+  const shown = fitLine(text, font, size, width);
+  const textWidth = font.widthOfTextAtSize(shown, size);
+  page.drawText(shown, { x: center - textWidth / 2, y, size, font, color: ink });
+}
+
+function drawSnowflake(
+  page: import("pdf-lib").PDFPage,
+  cx: number,
+  cy: number,
+  size: number,
+  filled: boolean,
+  ink: ReturnType<typeof import("pdf-lib").rgb>,
+) {
+  const scale = size / 100;
+  for (const line of snowflakeLines()) {
+    page.drawLine({
+      start: { x: cx + (line.x1 - 50) * scale, y: cy - (line.y1 - 50) * scale },
+      end: { x: cx + (line.x2 - 50) * scale, y: cy - (line.y2 - 50) * scale },
+      thickness: filled ? 1.15 : 0.45,
+      color: ink,
+    });
+  }
+  page.drawCircle({
+    x: cx,
+    y: cy,
+    size: filled ? size * 0.045 : size * 0.03,
+    color: filled ? ink : undefined,
+    borderColor: ink,
+    borderWidth: 0.4,
+  });
+}
+
+function drawScales(
   page: import("pdf-lib").PDFPage,
   card: CardModel,
   left: number,
@@ -372,36 +432,109 @@ function drawFacts(
   fonts: Fonts,
   ink: ReturnType<typeof import("pdf-lib").rgb>,
 ) {
-  const facts: [string, string][] = [
-    ["Światło", LIGHT_LABEL[card.light]],
-    ["Woda", WATERING_LABEL[card.watering]],
-    ["Mróz", card.hardinessC?.trim() || FROST_CAPTION[card.frostLabel]],
-    ["Wys. × szer.", sizeLabel(card.height ?? "", card.width ?? "")],
+  const { rgb } = requireRgb();
+  const frost = resolveFrost(card);
+  const columns: { title: string; kind: "light" | "water" | "frost" }[] = [
+    { title: "STANOWISKO", kind: "light" },
+    { title: "PODLEWANIE", kind: "water" },
+    { title: "ODPORNOŚĆ NA MRÓZ", kind: "frost" },
   ];
-  const column = contentWidth / facts.length;
-  const valueSize = 8;
-  const labelSize = 6.5;
-  facts.forEach(([label, value], index) => {
-    const center = left + column * index + column / 2;
-    const shown = fitLine(value, fonts.bold, valueSize, column - mm(1.2));
-    const valueWidth = fonts.bold.widthOfTextAtSize(shown, valueSize);
-    page.drawText(shown, {
-      x: center - valueWidth / 2,
-      y: cursor - mm(3.2),
-      size: valueSize,
-      font: fonts.bold,
-      color: ink,
-    });
-    const labelWidth = fonts.semibold.widthOfTextAtSize(label, labelSize);
-    page.drawText(label, {
-      x: center - labelWidth / 2,
-      y: cursor - mm(7.2),
-      size: labelSize,
+  const gap = mm(1.4);
+  const columnWidth = (contentWidth - gap * 2) / 3;
+  const widths = [columnWidth * 1.05, columnWidth * 0.9, columnWidth * 1.15];
+  const widthSum = widths.reduce((sum, item) => sum + item, 0);
+  const scaled = widths.map((item) => (item / widthSum) * (contentWidth - gap * 2));
+  let columnX = left;
+  scaled.forEach((width, index) => {
+    const column = columns[index];
+    const center = columnX + width / 2;
+    drawCentered(page, column.title, center, cursor - mm(2.6), 6.2, fonts.bold, ink, width);
+    const cellGap = mm(0.4);
+    const cell = (width - cellGap * 4) / 5;
+    const markY = cursor - mm(8.2);
+    for (let step = 1; step <= 5; step += 1) {
+      const cellX = columnX + (step - 1) * (cell + cellGap);
+      const cellCenter = cellX + cell / 2;
+      if (column.kind === "light") {
+        const on = step >= card.lightFrom && step <= card.lightTo;
+        page.drawRectangle({
+          x: cellX,
+          y: markY - mm(0.4),
+          width: cell,
+          height: mm(1.5),
+          borderColor: ink,
+          borderWidth: 0.5,
+          color: on ? ink : rgb(1, 1, 1),
+        });
+        drawCentered(page, String(step), cellCenter, markY + mm(1.5), 7, fonts.bold, ink, cell);
+      } else if (column.kind === "water") {
+        const on = step >= card.waterFrom && step <= card.waterTo;
+        page.drawEllipse({
+          x: cellCenter,
+          y: markY + mm(1.3),
+          xScale: mm(1.15),
+          yScale: mm(1.7),
+          borderColor: ink,
+          borderWidth: 0.7,
+          color: on ? ink : undefined,
+        });
+      } else {
+        const on = frost.known && step <= frost.level;
+        drawSnowflake(page, cellCenter, markY + mm(1.5), mm(6.4), on, ink);
+      }
+      const caption = column.kind === "light" ? LIGHT_STEPS[step - 1].caption : column.kind === "water" ? WATER_STEPS[step - 1].caption : FROST_STEPS[step - 1].caption;
+      drawCentered(page, caption, cellCenter, cursor - mm(11.4), 5.2, fonts.semibold, ink, cell + cellGap);
+    }
+    if (column.kind === "frost") {
+      const markerX = columnX + width * 0.6;
+      page.drawLine({
+        start: { x: markerX, y: cursor - mm(4.2) },
+        end: { x: markerX, y: cursor - mm(10.2) },
+        thickness: 1.1,
+        color: ink,
+      });
+      page.drawText("6a", { x: markerX + mm(0.4), y: cursor - mm(4.6), size: 5, font: fonts.bold, color: ink });
+    }
+    const value = column.kind === "light"
+      ? rangeCaption(LIGHT_STEPS, card.lightFrom, card.lightTo)
+      : column.kind === "water"
+        ? rangeCaption(WATER_STEPS, card.waterFrom, card.waterTo)
+        : frost.value;
+    drawCentered(page, value, center, cursor - mm(14.2), 6.4, fonts.bold, ink, width);
+    columnX += width + gap;
+  });
+  const legendWidth = fonts.regular.widthOfTextAtSize(SCALE_LEGEND, 6);
+  const legend = legendWidth > contentWidth ? fitLine(SCALE_LEGEND, fonts.regular, 6, contentWidth) : SCALE_LEGEND;
+  const legendTextWidth = fonts.regular.widthOfTextAtSize(legend, 6);
+  page.drawText(legend, {
+    x: left + (contentWidth - legendTextWidth) / 2,
+    y: cursor - mm(17.2),
+    size: 6,
+    font: fonts.regular,
+    color: ink,
+  });
+  let next = cursor - mm(19);
+  if (frost.note) {
+    const note = fitLine(frost.note, fonts.semibold, 6.5, contentWidth);
+    const noteWidth = fonts.semibold.widthOfTextAtSize(note, 6.5);
+    page.drawText(note, {
+      x: left + (contentWidth - noteWidth) / 2,
+      y: next,
+      size: 6.5,
       font: fonts.semibold,
       color: ink,
     });
+    next -= mm(3.2);
+  }
+  const size = `WYMIAR  ${sizeLabel(card.height ?? "", card.width ?? "")}`;
+  page.drawText(fitLine(size, fonts.bold, 8, contentWidth), {
+    x: left,
+    y: next - mm(0.4),
+    size: 8,
+    font: fonts.bold,
+    color: ink,
   });
-  return cursor - mm(10);
+  return next - mm(3.4);
 }
 
 function drawMonths(

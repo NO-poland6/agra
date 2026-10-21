@@ -1,7 +1,10 @@
 import { factsFor } from "./plant-facts";
+import { applyScaleDefaults } from "./scales";
 import type { PlantRecord } from "./types";
 
-const RAW_PLANTS: Array<Omit<PlantRecord, "width" | "hardinessC" | "bloomMonths" | "badges">> = [
+const RAW_PLANTS: Array<
+  Omit<PlantRecord, "width" | "hardinessC" | "bloomMonths" | "badges" | "waterFrom" | "waterTo" | "lightFrom" | "lightTo" | "usdaZone">
+> = [
   {
     id: "lawenda-waskolistna",
     polishName: "Lawenda wąskolistna",
@@ -12,7 +15,7 @@ const RAW_PLANTS: Array<Omit<PlantRecord, "width" | "hardinessC" | "bloomMonths"
     watering: "low",
     light: "sun",
     frostLabel: "mrozoodporna",
-    frostDetail: "do ok. -20 °C (strefa 6), przy suchym drenażu",
+    frostDetail: "okryć młode rośliny na zimę",
     description:
       "Krzewinka o srebrzystych liściach i fioletowych kłosach, pachnąca w lipcu i sierpniu. Kwiaty wabią pszczoły i dobrze się suszą. Sadź w pełnym słońcu, w przepuszczalnej glebie — po kwitnieniu skróć pędy, nie tnąc w stare drewno.",
   },
@@ -1621,7 +1624,10 @@ const RAW_PLANTS: Array<Omit<PlantRecord, "width" | "hardinessC" | "bloomMonths"
   },
 ];
 
-export const PLANTS: PlantRecord[] = RAW_PLANTS.map((plant) => ({
-  ...plant,
-  ...factsFor(plant.id),
-}));
+export const PLANTS: PlantRecord[] = RAW_PLANTS.map((plant) =>
+  applyScaleDefaults({
+    ...plant,
+    ...factsFor(plant.id),
+    usdaZone: "",
+  }),
+);

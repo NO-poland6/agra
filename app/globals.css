@@ -135,7 +135,7 @@
   width: 148mm;
   height: 210mm;
   box-sizing: border-box;
-  padding: 7mm 7.5mm 6.5mm;
+  padding: 3.6mm 5mm 3.2mm;
   position: relative;
   overflow: hidden;
   background: #fbf8f2;
@@ -148,7 +148,7 @@
 .shelf-card::before {
   content: "";
   position: absolute;
-  inset: 5.5mm;
+  inset: 3mm;
   border: 0.28mm solid #1b2418;
   pointer-events: none;
 }
@@ -197,13 +197,40 @@
 
 .shelf-qr {
   display: block;
-  width: 14mm;
-  height: 14mm;
+  width: 12mm;
+  height: 12mm;
   background: #fff;
 }
 
+.shelf-qr-float {
+  position: absolute;
+  top: 1.2mm;
+  right: 1.2mm;
+  z-index: 2;
+  display: grid;
+  justify-items: center;
+  gap: 0.3mm;
+  padding: 0.7mm 0.7mm 0.4mm;
+  background: #fff;
+  border: 0.28mm solid #1b2418;
+  font-size: 5.5pt;
+  font-weight: 750;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
 .shelf-figure {
-  margin: 2mm 0 0;
+  position: relative;
+  margin: 1.2mm 0 0;
+  min-height: 0;
+}
+
+.shelf-card.has-photo .shelf-figure {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  margin-left: -3mm;
+  margin-right: -3mm;
 }
 
 .shelf-photo {
@@ -211,13 +238,15 @@
   width: 100%;
   height: 46mm;
   object-fit: cover;
-  object-position: center 40%;
+  object-position: center 36%;
   border: 0.28mm solid #1b2418;
   background: #efeae0;
 }
 
 .shelf-card.has-photo .shelf-photo {
-  height: 38mm;
+  flex: 1 1 auto;
+  height: auto;
+  min-height: 0;
 }
 
 .shelf-credit {
@@ -230,8 +259,13 @@
   text-overflow: ellipsis;
 }
 
+.shelf-card.has-photo .shelf-name {
+  margin-top: 0.6mm;
+  font-size: 17pt;
+}
+
 .shelf-name {
-  margin: 1.8mm 0 0;
+  margin: 1.2mm 0 0;
   font-family: var(--font-fraunces), "Palatino Linotype", Palatino, serif;
   font-weight: 620;
   font-size: 22pt;
@@ -246,7 +280,7 @@
 }
 
 .shelf-latin {
-  margin: 0.6mm 0 0;
+  margin: 0.2mm 0 0;
   font-family: var(--font-fraunces), Palatino, serif;
   font-style: italic;
   font-weight: 460;
@@ -259,18 +293,36 @@
 }
 
 .shelf-type {
-  margin: 0.8mm 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2mm;
+  margin: 0.3mm 0 0;
   font-size: 8pt;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
+}
+
+.shelf-size-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 1mm;
+  font-size: 7.5pt;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.shelf-size-inline .shelf-pictogram {
+  width: 7mm;
+  height: 4.5mm;
 }
 
 .shelf-badges {
   display: flex;
   flex-wrap: wrap;
   gap: 1mm;
-  margin: 1.4mm 0 0;
+  margin: 0.6mm 0 0;
   padding: 0;
   list-style: none;
 }
@@ -285,7 +337,7 @@
 }
 
 .shelf-desc {
-  margin: 1.6mm 0 0;
+  margin: 0.7mm 0 0;
   font-size: 9pt;
   line-height: 1.3;
   overflow: hidden;
@@ -295,46 +347,182 @@
   line-clamp: 2;
 }
 
-.shelf-icons {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 1mm;
-  margin-top: 2mm;
+.shelf-care {
+  margin-top: 0.8mm;
 }
 
-.shelf-icon-col {
+.shelf-scales {
+  display: grid;
+  grid-template-columns: 1.05fr 0.9fr 1.15fr;
+  gap: 1.4mm;
+  align-items: start;
+}
+
+.scale-heading {
+  margin: 0 0 0.5mm;
+  min-height: 4.4mm;
+  font-size: 6.4pt;
+  font-weight: 750;
+  letter-spacing: 0.03em;
+  line-height: 1.05;
   text-align: center;
+  text-transform: uppercase;
+}
+
+.scale-track {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.45mm;
+}
+
+.scale-cell {
+  display: grid;
+  justify-items: center;
+  align-content: end;
+  gap: 0.25mm;
   min-width: 0;
+  color: #1b2418;
+}
+
+.scale-num {
+  font-size: 7pt;
+  font-weight: 750;
+  line-height: 1;
+}
+
+.scale-bar {
+  display: block;
+  width: 100%;
+  height: 1.5mm;
+  border: 0.25mm solid #1b2418;
+  background: #fff;
+}
+
+.scale-cell.is-on .scale-bar {
+  background: #1b2418;
+}
+
+.scale-cap {
+  font-size: 5.4pt;
+  font-weight: 650;
+  line-height: 1.05;
+  text-align: center;
+}
+
+.drop,
+.flake {
+  display: block;
+  width: 100%;
+  height: 5.8mm;
+  color: #1b2418;
+}
+
+.drop path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+}
+
+.drop.is-on path {
+  fill: currentColor;
+}
+
+.flake line {
+  stroke: currentColor;
+  stroke-linecap: round;
+  fill: none;
+  stroke-width: 1.8;
+}
+
+.flake.is-on line {
+  stroke-width: 4.4;
+}
+
+.flake circle {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+}
+
+.flake.is-on circle {
+  fill: currentColor;
+  stroke: none;
+}
+
+.scale-shop {
+  position: absolute;
+  left: 60%;
+  top: 0;
+  bottom: 3.4mm;
+  border-left: 0.45mm solid #1b2418;
+  pointer-events: none;
+}
+
+.scale-shop::after {
+  content: "6a";
+  position: absolute;
+  left: 0.5mm;
+  top: -0.2mm;
+  font-size: 5pt;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.scale-value {
+  margin: 0.4mm 0 0;
+  font-size: 6.5pt;
+  font-weight: 750;
+  line-height: 1.1;
+  text-align: center;
+}
+
+.scale-legend,
+.scale-note {
+  margin: 0.7mm 0 0;
+  font-size: 6pt;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.scale-note {
+  font-weight: 650;
+}
+
+.shelf-size {
+  display: grid;
+  grid-template-columns: auto 8mm 1fr;
+  align-items: center;
+  gap: 1mm;
+  margin-top: 0.5mm;
+}
+
+.shelf-size .scale-heading {
+  min-height: 0;
+  margin: 0;
+  text-align: left;
+}
+
+.shelf-size .shelf-pictogram {
+  height: 6mm;
+}
+
+.shelf-size .scale-value {
+  margin: 0;
+  text-align: left;
 }
 
 .shelf-pictogram {
   display: block;
   width: 100%;
   height: 8.5mm;
-  margin: 0 auto 0.4mm;
-}
-
-.shelf-icon-value {
-  margin: 0;
-  font-size: 7.5pt;
-  font-weight: 750;
-  line-height: 1.15;
-  overflow-wrap: anywhere;
-}
-
-.shelf-icon-label {
-  margin: 0.2mm 0 0;
-  font-size: 6.5pt;
-  font-weight: 650;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
 }
 
 .shelf-months {
   display: grid;
   grid-template-columns: repeat(12, 1fr);
-  gap: 0.55mm;
-  margin-top: 2mm;
+  gap: 0.4mm;
+  margin-top: 0.6mm;
 }
 
 .shelf-month {
@@ -354,19 +542,23 @@
 }
 
 .shelf-month-caption {
-  margin: 0.6mm 0 0;
+  margin: 0.2mm 0 0;
   text-align: right;
   font-size: 6.5pt;
   letter-spacing: 0.02em;
 }
 
 .shelf-bottom {
-  margin-top: auto;
+  margin-top: 1mm;
+}
+
+.shelf-card.has-photo .shelf-bottom {
+  margin-top: 1mm;
 }
 
 .shelf-price {
-  margin-top: 2mm;
-  min-height: 16mm;
+  margin-top: 0.6mm;
+  min-height: 12.6mm;
   border: 1.1mm solid #1b2418;
   background: #f3e2a4;
   display: flex;
@@ -379,7 +571,7 @@
 .shelf-price-amount {
   font-family: var(--font-fraunces), Palatino, serif;
   font-weight: 680;
-  font-size: 34pt;
+  font-size: 30pt;
   line-height: 0.88;
   font-variant-numeric: lining-nums;
 }

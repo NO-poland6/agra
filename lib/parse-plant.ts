@@ -1,4 +1,5 @@
 import { cleanName } from "./normalize";
+import { applyScaleDefaults } from "./scales";
 import { normalizeMonths, parseBadges } from "./shelf";
 import { FROST_LABELS, LIGHT, WATERING, type FrostLabel, type Light, type PlantInfo, type Watering } from "./types";
 
@@ -115,8 +116,15 @@ export function parsePlantResponse(data: unknown, fallback: { polishName: string
   const latinName = cleanName(text(record.latinName, 120) || fallback.latinName);
   if (!polishName && !latinName) return null;
 
+  const waterLevel = mapLevel(record.waterLevel);
+  let waterFrom = mapLevel(record.waterFrom);
+  let waterTo = mapLevel(record.waterTo);
+  if (!waterFrom && !waterTo && waterLevel) {
+    waterFrom = 1;
+    waterTo = waterLevel;
+  }
   return {
-    plant: {
+    plant: applyScaleDefaults({
       polishName: polishName || fallback.polishName,
       latinName,
       description,
@@ -130,7 +138,18 @@ export function parsePlantResponse(data: unknown, fallback: { polishName: string
       hardinessC: text(record.hardinessC, 24),
       bloomMonths: normalizeMonths(record.bloomMonths),
       badges: mapBadges(record.badges),
-    },
+      waterFrom,
+      waterTo,
+      lightFrom: mapLevel(record.lightFrom),
+      lightTo: mapLevel(record.lightTo),
+      usdaZone: text(record.usdaZone, 12).replace(/strefa|usda/gi, "").trim(),
+    }),
     warnings,
   };
+}
+
+function mapLevel(value: unknown): number {
+  const parsed = typeof value === "number" ? value : Number(String(value ?? "").trim());
+  if (!Number.isInteger(parsed) || parsed < 1 || parsed > 5) return 0;
+  return parsed;
 }

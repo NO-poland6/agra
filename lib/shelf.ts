@@ -1,3 +1,4 @@
+import { applyScaleDefaults } from "./scales";
 import type { PlantInfo } from "./types";
 
 export const MONTH_ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"] as const;
@@ -51,8 +52,8 @@ export function plantInfoUrl(latinName: string, polishName: string): string | nu
   return `https://pl.wikipedia.org/w/index.php?${params.toString()}`;
 }
 
-export function withPlantDefaults(info: PlantInfo): PlantInfo {
-  return {
+export function withPlantDefaults(info: Partial<PlantInfo>): PlantInfo {
+  return applyScaleDefaults({
     polishName: info.polishName ?? "",
     latinName: info.latinName ?? "",
     description: info.description ?? "",
@@ -68,7 +69,12 @@ export function withPlantDefaults(info: PlantInfo): PlantInfo {
     badges: Array.isArray(info.badges)
       ? info.badges.filter((badge) => typeof badge === "string" && badge.trim()).slice(0, 6)
       : [],
-  };
+    waterFrom: info.waterFrom ?? 0,
+    waterTo: info.waterTo ?? 0,
+    lightFrom: info.lightFrom ?? 0,
+    lightTo: info.lightTo ?? 0,
+    usdaZone: info.usdaZone ?? "",
+  });
 }
 
 export function sizeLabel(height: string, width: string): string {

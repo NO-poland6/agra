@@ -6,7 +6,7 @@ Aplikacja dla pracowników sklepu ogrodniczego **AGRA PSK** w Kłodzku (od 1991 
 
 1. Pracownik wpisuje polską nazwę (i ewentualnie łacińską) oraz cenę w złotych. Program sam szuka zdjęcia rośliny. Można też wgrać własne.
 2. Opis i dane pielęgnacji biorą się z katalogu ponad stu roślin popularnych w polskich szkółkach. Jeśli rośliny nie ma w katalogu, a na serwerze jest klucz API, opis przygotowuje model językowy. Zawsze można wpisać treść ręcznie.
-3. Przed drukiem da się poprawić każde pole: opis, podlewanie, stanowisko, mrozoodporność, typ, wysokość, nazwy i cenę.
+3. Przed drukiem da się poprawić każde pole: opis, zakres światła, podlewanie, mrozoodporność (temperatura i strefa USDA), typ, wymiary, miesiące, odznaki, nazwy i cenę.
 4. Podgląd pokazuje kartę A5 (148 × 210 mm) oraz arkusz A4 w poziomie z dwiema kartami i linią cięcia. Jest też pobieranie PDF.
 5. Gotowe opisy (także poprawki) zostają w pamięci przeglądarki, więc ta sama roślina nie woła modelu drugi raz. Wybrane zdjęcie — adres i podpis — też zostaje przy tej roślinie.
 
