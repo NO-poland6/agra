@@ -634,3 +634,19 @@
 .variant-b .shelf-size-inline { font-size: 11pt; font-weight: 600; gap: 2mm; }
 .variant-b .size-lines { display: flex; flex-direction: column; line-height: 1.3; text-align: left; }
 .variant-b .shelf-size-inline .shelf-pictogram { width: 9mm; height: 6.5mm; }
+
+.module-panel[hidden] { display: none !important; }
+.big-price-card {
+  width: 148mm;
+  height: 210mm;
+  flex: none;
+  overflow: hidden;
+  background: #fff;
+  color: #181818;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+.big-price-card svg { display: block; }
+@media print {
+  .big-price-card { break-inside: avoid; page-break-inside: avoid; }
+}

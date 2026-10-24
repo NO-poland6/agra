@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { FileDown, Printer, Sprout } from "lucide-react";
+import { BigPriceModule } from "@/components/big-price-module";
+import type { PriceFonts } from "@/lib/price-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,12 +25,12 @@ import {
 } from "@/lib/photo-cache";
 import { formatPrice } from "@/lib/format";
 import { parsePrice } from "@/lib/format";
+import { PLANTS } from "@/lib/plants";
 import { findPlantById, interpretMatches, searchPlants, type MatchHit } from "@/lib/match";
 import { normalize } from "@/lib/normalize";
 import { BADGE_SUGGESTIONS, MONTH_ROMAN, parseBadges, withPlantDefaults } from "@/lib/shelf";
 import { buildGeneratePayload } from "@/lib/plant-query";
 import { isPhotoCandidate, photoProxyUrl, type PhotoCandidate } from "@/lib/photos";
-import { PLANTS } from "@/lib/plants";
 import type { CardModel, PlantInfo, PlantRecord, SourceKind } from "@/lib/types";
 
 import { DEFAULT_VARIANT, LABEL_VARIANTS, VARIANT_STORAGE_KEY, labelVariant, type LabelVariant } from "@/lib/variants";
@@ -83,7 +85,7 @@ function Field({
   );
 }
 
-export function EtykietyApp() {
+function LabelsModule() {
   const [variant, setVariant] = useState<LabelVariant>(DEFAULT_VARIANT);
   const [polishName, setPolishName] = useState("");
   const [latinName, setLatinName] = useState("");
@@ -567,26 +569,6 @@ export function EtykietyApp() {
   return (
     <>
       <div className="screen-ui min-h-screen">
-        <header className="border-b border-border bg-card">
-          <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
-            <div className="flex items-center gap-3">
-              <span className="grid size-11 place-items-center rounded-md border border-primary text-primary" aria-hidden>
-                <Sprout className="size-6" />
-              </span>
-              <div>
-                <p className="text-[0.7rem] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
-                  Kłodzko · od 1991 r.
-                </p>
-                <h1 className="font-display text-2xl leading-none text-foreground">AGRA PSK</h1>
-              </div>
-            </div>
-            <div className="text-right">
-              <p className="hidden text-sm font-medium sm:block">Etykiety roślin na półkę</p>
-              <p className="text-xs text-muted-foreground">{aiOn ? "Opis AI włączony" : `Katalog: ${PLANTS.length} roślin`}</p>
-            </div>
-          </div>
-        </header>
-
         <main className="mx-auto grid max-w-6xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]">
           <section className="grid content-start gap-5">
             <form
@@ -598,6 +580,7 @@ export function EtykietyApp() {
             >
               <div>
                 <h2 className="font-display text-xl">Nowa etykieta</h2>
+                <p className="mt-1 text-xs text-muted-foreground">{aiOn ? "Opis AI włączony" : `Katalog: ${PLANTS.length} roślin`}</p>
                 <p className="mt-1 text-sm text-muted-foreground">
                   Wpisz nazwę rośliny i cenę. Do opisu AI i do wyszukiwarki zdjęć wędruje wyłącznie nazwa — cena zostaje w tej przeglądarce.
                 </p>
@@ -1006,6 +989,93 @@ export function EtykietyApp() {
           </div>
         </>
       ) : null}
+    </>
+  );
+}
+
+
+type AppModule = "etykiety" | "cena";
+
+export function EtykietyApp({
+  initialModule,
+  priceFonts,
+}: {
+  initialModule: AppModule;
+  priceFonts: PriceFonts;
+}) {
+  const [active, setActive] = useState<AppModule>(initialModule);
+  const [labelsVisited, setLabelsVisited] = useState(
+    initialModule === "etykiety",
+  );
+  function selectModule(module: AppModule) {
+    setActive(module);
+    if (module === "etykiety") setLabelsVisited(true);
+    delete document.documentElement.dataset.print;
+  }
+  useEffect(() => {
+    const onPop = () =>
+      selectModule(
+        new URLSearchParams(window.location.search).get("modul") === "cena"
+          ? "cena"
+          : "etykiety",
+      );
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+  function navigate(module: AppModule) {
+    selectModule(module);
+    const url = new URL(window.location.href);
+    if (module === "cena") url.searchParams.set("modul", "cena");
+    else url.searchParams.delete("modul");
+    window.history.pushState(null, "", url);
+  }
+  return (
+    <>
+      <header className="screen-ui border-b border-border bg-card">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-3 sm:px-6">
+          <div className="flex items-center gap-3">
+            <span
+              className="grid size-11 place-items-center rounded-md border border-primary text-primary"
+              aria-hidden
+            >
+              <Sprout className="size-6" />
+            </span>
+            <div>
+              <p className="text-[0.7rem] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
+                Kłodzko · od 1991 r.
+              </p>
+              <h1 className="font-display text-2xl leading-none">AGRA PSK</h1>
+            </div>
+          </div>
+          <nav
+            aria-label="Moduły"
+            className="flex gap-1 rounded-lg bg-muted p-1"
+          >
+            {(
+              [
+                ["etykiety", "Etykiety roślin"],
+                ["cena", "Duża cena"],
+              ] as const
+            ).map(([module, label]) => (
+              <Button
+                key={module}
+                type="button"
+                variant={active === module ? "default" : "ghost"}
+                aria-current={active === module ? "page" : undefined}
+                onClick={() => navigate(module)}
+              >
+                {label}
+              </Button>
+            ))}
+          </nav>
+        </div>
+      </header>
+      <div className="module-panel" hidden={active !== "etykiety"}>
+        {labelsVisited ? <LabelsModule /> : null}
+      </div>
+      <div className="module-panel" hidden={active !== "cena"}>
+        <BigPriceModule fonts={priceFonts} />
+      </div>
     </>
   );
 }

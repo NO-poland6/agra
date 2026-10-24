@@ -1,3 +1,6 @@
+import { PDFDocument as PricePDFDocument, rgb as priceRgb } from "pdf-lib";
+import priceFontkit from "@pdf-lib/fontkit";
+import { PRICE_CONTENT, PRICE_HEIGHT, PRICE_LEFT, PRICE_MM, PRICE_NAME_TOP, PRICE_WIDTH, priceBaseline, priceCardLayout, type PriceCardModel, type PriceFonts } from "./price-card";
 import { fileSlug } from "./normalize";
 import { formatPriceParts } from "./format";
 import {
@@ -549,4 +552,118 @@ export async function downloadCardPdf(card: CardModel, mode: "a5" | "a4", varian
   link.download = mode === "a5" ? `etykieta-${slug}.pdf` : `etykiety-a4-${slug}.pdf`;
   link.click();
   URL.revokeObjectURL(url);
+}
+
+
+// Font bytes arrive with the page, so this module never fetches fonts or images.
+export async function downloadPriceCardPdf(
+  card: PriceCardModel,
+  mode: "a5" | "a4",
+  fontData: PriceFonts,
+) {
+  const pdf = await PricePDFDocument.create();
+  pdf.registerFontkit(priceFontkit);
+  const decode = (data: string) =>
+    Uint8Array.from(atob(data), (char) => char.charCodeAt(0));
+  const [bold, display] = await Promise.all([
+    pdf.embedFont(decode(fontData.bold), { subset: true }),
+    pdf.embedFont(decode(fontData.display), { subset: true }),
+  ]);
+  const layout = priceCardLayout(card, (value, size, isDisplay) =>
+    (isDisplay ? display : bold).widthOfTextAtSize(value, size),
+  );
+  const page = pdf.addPage([
+    mode === "a5" ? PRICE_WIDTH : mm(297),
+    PRICE_HEIGHT,
+  ]);
+  const ink = priceRgb(0.094, 0.094, 0.094);
+  function draw(offset: number) {
+    const text = (
+      value: string,
+      x: number,
+      top: number,
+      size: number,
+      font = bold,
+      color = ink,
+    ) =>
+      page.drawText(value, {
+        x: offset + x,
+        y: PRICE_HEIGHT - top,
+        size,
+        font,
+        color,
+      });
+    page.drawRectangle({
+      x: offset + PRICE_LEFT,
+      y: PRICE_HEIGHT - mm(16),
+      width: PRICE_CONTENT,
+      height: mm(10),
+      color: ink,
+    });
+    // Character spacing matches the SVG header.
+    let brandX = mm(11);
+    for (const char of "AGRA PSK") {
+      text(char, brandX, mm(12.7), 12, bold, priceRgb(1, 1, 1));
+      brandX += bold.widthOfTextAtSize(char, 12) + 1.5;
+    }
+    const place = "Kłodzko · od 1991 r.";
+    text(
+      place,
+      mm(137) - bold.widthOfTextAtSize(place, 8),
+      mm(12.7),
+      8,
+      bold,
+      priceRgb(1, 1, 1),
+    );
+    page.drawLine({
+      start: { x: offset + PRICE_LEFT, y: PRICE_HEIGHT - mm(19) },
+      end: { x: offset + PRICE_LEFT + PRICE_CONTENT, y: PRICE_HEIGHT - mm(19) },
+      thickness: PRICE_MM,
+      color: ink,
+    });
+    layout.lines.forEach((line, index) =>
+      text(
+        line,
+        PRICE_LEFT,
+        PRICE_NAME_TOP + layout.nameSize * (0.9 + index * 1.12),
+        layout.nameSize,
+        display,
+      ),
+    );
+    text(
+      layout.amount,
+      layout.priceX,
+      priceBaseline(layout.priceSize, layout.nameSize, layout.lines.length),
+      layout.priceSize,
+      display,
+    );
+    text(
+      "zł",
+      layout.currencyX,
+      priceBaseline(layout.priceSize, layout.nameSize, layout.lines.length),
+      layout.priceSize * 0.24,
+    );
+  }
+  draw(0);
+  if (mode === "a4") {
+    draw(mm(149));
+    page.drawLine({
+      start: { x: mm(148.5), y: mm(5) },
+      end: { x: mm(148.5), y: mm(205) },
+      thickness: mm(0.35),
+      dashArray: [3, 2],
+      color: ink,
+    });
+  }
+  const bytes = await pdf.save();
+  const copy = new ArrayBuffer(bytes.byteLength);
+  new Uint8Array(copy).set(bytes);
+  const url = URL.createObjectURL(
+    new Blob([copy], { type: "application/pdf" }),
+  );
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `duza-cena-${fileSlug(card.name)}-${mode}.pdf`;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
