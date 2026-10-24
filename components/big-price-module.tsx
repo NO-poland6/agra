@@ -147,14 +147,17 @@ export function BigPriceModule({
   setName,
   price,
   setPrice,
+  preview,
+  setPreview,
 }: {
   fonts: PriceFonts;
   name: string;
   setName: (value: string) => void;
   price: string;
   setPrice: (value: string) => void;
+  preview: "a5" | "a4";
+  setPreview: (mode: "a5" | "a4") => void;
 }) {
-  const [preview, setPreview] = useState<"a5" | "a4">("a5");
   const [saved, setSaved] = useState<PriceCardModel[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
@@ -184,16 +187,6 @@ export function BigPriceModule({
   const valid = Boolean(name.trim() && value !== null);
   const card = { name: name.trim(), price: value ?? 0 };
   function print() {
-    const style =
-      document.getElementById("print-page-size") ??
-      document.createElement("style");
-    style.id = "print-page-size";
-    style.textContent =
-      preview === "a4"
-        ? "@page { size: 210mm 297mm; margin: 0; }"
-        : "@page { size: 210mm 148mm; margin: 0; }";
-    document.head.appendChild(style);
-    document.documentElement.dataset.print = preview;
     window.print();
   }
   async function savePdf() {

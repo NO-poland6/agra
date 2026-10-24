@@ -514,42 +514,6 @@
   display: none;
 }
 
-@page {
-  size: 148mm 210mm;
-  margin: 0;
-}
-
-@media print {
-  .screen-ui {
-    display: none !important;
-  }
-
-  html,
-  body {
-    margin: 0 !important;
-    padding: 0 !important;
-    background: #fff !important;
-  }
-
-  .print-only {
-    display: none !important;
-  }
-
-  html:not([data-print="a4"]) .sheet-a5 {
-    display: block !important;
-  }
-
-  html[data-print="a4"] .sheet-a4 {
-    display: block !important;
-  }
-
-  .sheet-a5,
-  .sheet-a4,
-  .shelf-card {
-    break-inside: avoid;
-    page-break-inside: avoid;
-  }
-}
 /* Wspólna siatka drukarska: wszystkie wymiary pozostają w milimetrach. */
 .shelf-card { background: #fff; color: #181818; padding: 6mm 7mm 5mm; }
 .shelf-card-inner > * { flex-shrink: 0; }
@@ -647,9 +611,6 @@
   print-color-adjust: exact;
 }
 .big-price-card svg { display: block; }
-@media print {
-  .big-price-card { break-inside: avoid; page-break-inside: avoid; }
-}
 
 /* Price cards use their own sheet so plant labels retain their print layout. */
 .big-price-sheet-a4 {
@@ -671,15 +632,77 @@
   right: 5mm;
   border-top: 0.35mm dashed #181818;
 }
-@page big-price-a5 {
-  size: 210mm 148mm;
-  margin: 0;
-}
-@page big-price-a4 {
-  size: 210mm 297mm;
-  margin: 0;
-}
+/* Page dimensions come exclusively from EtykietyApp's active print mode. */
 @media print {
-  .big-price-print-a5 { page: big-price-a5; width: 210mm; height: 148mm; }
-  .big-price-print-a4 { page: big-price-a4; width: 210mm; height: 297mm; }
+  html,
+  body {
+    display: block !important;
+    width: var(--print-width);
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+
+  /* Remove navigation, portals, notifications and inactive panels from layout. */
+  body > :not(.module-panel),
+  .module-panel[hidden],
+  .module-panel > :not(.print-only),
+  .print-only {
+    display: none !important;
+  }
+
+  .module-panel:not([hidden]) {
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    min-height: 0 !important;
+  }
+
+  .module-panel:not([hidden])[data-print-mode="a5"] > .sheet-a5,
+  .module-panel:not([hidden])[data-print-mode="a4"] > .sheet-a4 {
+    display: block !important;
+    width: var(--print-width);
+    height: var(--print-height);
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    overflow: hidden;
+    break-inside: avoid;
+    break-after: avoid;
+    page-break-inside: avoid;
+    page-break-after: avoid;
+  }
+
+  .sheet-a4-row,
+  .big-price-sheet-a4 {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .sheet-a4-row .shelf-card,
+  .sheet-a5 > .shelf-card {
+    height: var(--print-height);
+  }
+
+  .shelf-card,
+  .big-price-card {
+    box-sizing: border-box;
+    overflow: hidden;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Keep the price inside A5 even when a description or photo needs to shrink. */
+  .shelf-card-inner { overflow: hidden; }
+  .shelf-card-inner > .shelf-desc {
+    flex-shrink: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .shelf-card.has-photo .shelf-figure {
+    flex-shrink: 1;
+    overflow: hidden;
+  }
 }

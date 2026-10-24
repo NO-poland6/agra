@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { flushSync } from "react-dom";
 import { FileDown, Printer, Sprout } from "lucide-react";
 import { BigPriceModule } from "@/components/big-price-module";
 import type { PriceFonts } from "@/lib/price-card";
@@ -90,11 +91,15 @@ function LabelsModule({
   setPolishName,
   priceInput,
   setPriceInput,
+  preview,
+  setPreview,
 }: {
   polishName: string;
   setPolishName: (value: string) => void;
   priceInput: string;
   setPriceInput: (value: string) => void;
+  preview: "a5" | "a4";
+  setPreview: (mode: "a5" | "a4") => void;
 }) {
   const [variant, setVariant] = useState<LabelVariant>(DEFAULT_VARIANT);
   const [latinName, setLatinName] = useState("");
@@ -112,7 +117,6 @@ function LabelsModule({
   const [choices, setChoices] = useState<MatchHit[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [aiOn, setAiOn] = useState(false);
-  const [preview, setPreview] = useState<"a5" | "a4">("a5");
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const [recent, setRecent] = useState<RecentEntry[]>([]);
   const [clipped, setClipped] = useState(false);
@@ -213,14 +217,6 @@ function LabelsModule({
       cancelled = true;
     };
   }, [setPolishName, setPriceInput]);
-
-  useEffect(() => {
-    const reset = () => {
-      delete document.documentElement.dataset.print;
-    };
-    window.addEventListener("afterprint", reset);
-    return () => window.removeEventListener("afterprint", reset);
-  }, []);
 
   useEffect(() => {
     if (!info) return;
@@ -540,12 +536,8 @@ function LabelsModule({
   function printSheet(mode: "a5" | "a4") {
     if (!card || !info) return;
     writeRecent(info, card.price);
-    const style = document.getElementById("print-page-size") ?? document.createElement("style");
-    style.id = "print-page-size";
-    style.textContent =
-      mode === "a4" ? "@page { size: 297mm 210mm; margin: 0; }" : "@page { size: 148mm 210mm; margin: 0; }";
-    document.head.appendChild(style);
-    document.documentElement.dataset.print = mode;
+    // Commit the selected sheet and its @page before opening Chrome preview.
+    flushSync(() => setPreview(mode));
     window.print();
   }
 
@@ -1012,6 +1004,11 @@ export function EtykietyApp({
   priceFonts: PriceFonts;
 }) {
   const [active, setActive] = useState<AppModule>(initialModule);
+  const [labelsPreview, setLabelsPreview] = useState<"a5" | "a4">("a5");
+  const [pricePreview, setPricePreview] = useState<"a5" | "a4">("a5");
+  const [pageWidth, pageHeight] = active === "etykiety"
+    ? [labelsPreview === "a4" ? 297 : 148, 210]
+    : [210, pricePreview === "a4" ? 297 : 148];
   const [polishName, setPolishName] = useState("");
   const [priceInput, setPriceInput] = useState("");
   const [bigPriceName, setBigPriceName] = useState("");
@@ -1031,7 +1028,6 @@ export function EtykietyApp({
     }
     setActive(module);
     if (module === "etykiety") setLabelsVisited(true);
-    delete document.documentElement.dataset.print;
   }, [active, polishName, priceInput]);
   useEffect(() => {
     const onPop = () =>
@@ -1052,6 +1048,13 @@ export function EtykietyApp({
   }
   return (
     <>
+      {/* One unnamed page rule also handles printing from Chrome's menu. */}
+      <style id="print-page-size">{`
+        @page { size: ${pageWidth}mm ${pageHeight}mm; margin: 0; }
+        @media print {
+          :root { --print-width: ${pageWidth}mm; --print-height: calc(${pageHeight}mm - 0.5mm); }
+        }
+      `}</style>
       <header className="screen-ui border-b border-border bg-card">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-3 sm:px-6">
           <div className="flex items-center gap-3">
@@ -1091,23 +1094,27 @@ export function EtykietyApp({
           </nav>
         </div>
       </header>
-      <div className="module-panel" hidden={active !== "etykiety"}>
+      <div className="module-panel" data-print-mode={labelsPreview} hidden={active !== "etykiety"}>
         {labelsVisited ? (
           <LabelsModule
             polishName={polishName}
             setPolishName={setPolishName}
             priceInput={priceInput}
             setPriceInput={setPriceInput}
+            preview={labelsPreview}
+            setPreview={setLabelsPreview}
           />
         ) : null}
       </div>
-      <div className="module-panel" hidden={active !== "cena"}>
+      <div className="module-panel" data-print-mode={pricePreview} hidden={active !== "cena"}>
         <BigPriceModule
           fonts={priceFonts}
           name={bigPriceName}
           setName={setBigPriceName}
           price={bigPriceInput}
           setPrice={setBigPriceInput}
+          preview={pricePreview}
+          setPreview={setPricePreview}
         />
       </div>
     </>
