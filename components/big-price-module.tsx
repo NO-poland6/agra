@@ -47,7 +47,7 @@ function PriceCard({ card, ready }: { card: PriceCardModel; ready: boolean }) {
         width="100%"
         height="100%"
         role="img"
-        aria-label="Cenówka A5"
+        aria-label="Karta z ceną A5"
       >
         <rect width={PRICE_WIDTH} height={PRICE_HEIGHT} fill="white" />
         <g fontFamily={FONT_SANS} fill="#181818">
@@ -141,9 +141,19 @@ function PriceSheet({
   );
 }
 
-export function BigPriceModule({ fonts }: { fonts: PriceFonts }) {
-  const [name, setName] = useState("");
-  const [price, setPrice] = useState("");
+export function BigPriceModule({
+  fonts,
+  name,
+  setName,
+  price,
+  setPrice,
+}: {
+  fonts: PriceFonts;
+  name: string;
+  setName: (value: string) => void;
+  price: string;
+  setPrice: (value: string) => void;
+}) {
   const [preview, setPreview] = useState<"a5" | "a4">("a5");
   const [saved, setSaved] = useState<PriceCardModel[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -256,12 +266,12 @@ export function BigPriceModule({ fonts }: { fonts: PriceFonts }) {
               </p>
             </div>
             <Button type="submit" size="lg" className="h-11 w-full text-base">
-              Dodaj cenówkę
+              Zapisz na liście
             </Button>
           </form>
           {saved.length > 0 ? (
             <div>
-              <h3 className="mb-2 text-sm font-medium">Dodane cenówki</h3>
+              <h3 className="mb-2 text-sm font-medium">Zapisane karty</h3>
               <div className="flex flex-wrap gap-2">
                 {saved.map((item, index) => (
                   <Button
@@ -279,7 +289,7 @@ export function BigPriceModule({ fonts }: { fonts: PriceFonts }) {
                 ))}
               </div>
               <p role="status" className="mt-2 text-xs text-muted-foreground">
-                Dodano cenówkę. Wybierz ją ponownie, aby wydrukować lub pobrać
+                Zapisano kartę. Wybierz ją ponownie, aby wydrukować lub pobrać
                 PDF.
               </p>
             </div>
@@ -354,7 +364,7 @@ export function BigPriceModule({ fonts }: { fonts: PriceFonts }) {
           <p className="mt-2 text-xs text-muted-foreground">
             {preview === "a5"
               ? "Karta A5 · 148 × 210 mm. Podgląd aktualizuje się podczas pisania."
-              : "A4 poziomo · dwie kopie cenówki i linia cięcia pośrodku."}
+              : "A4 poziomo · dwie kopie karty i linia cięcia pośrodku."}
           </p>
         </section>
       </main>

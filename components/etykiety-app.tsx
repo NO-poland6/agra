@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { FileDown, Printer, Sprout } from "lucide-react";
 import { BigPriceModule } from "@/components/big-price-module";
 import type { PriceFonts } from "@/lib/price-card";
@@ -85,11 +85,19 @@ function Field({
   );
 }
 
-function LabelsModule() {
+function LabelsModule({
+  polishName,
+  setPolishName,
+  priceInput,
+  setPriceInput,
+}: {
+  polishName: string;
+  setPolishName: (value: string) => void;
+  priceInput: string;
+  setPriceInput: (value: string) => void;
+}) {
   const [variant, setVariant] = useState<LabelVariant>(DEFAULT_VARIANT);
-  const [polishName, setPolishName] = useState("");
   const [latinName, setLatinName] = useState("");
-  const [priceInput, setPriceInput] = useState("");
   const [photo, setPhoto] = useState<string | null>(null);
   const [photoCredit, setPhotoCredit] = useState<string | null>(null);
   const [candidates, setCandidates] = useState<PhotoCandidate[]>([]);
@@ -204,7 +212,7 @@ function LabelsModule() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [setPolishName, setPriceInput]);
 
   useEffect(() => {
     const reset = () => {
@@ -1004,14 +1012,27 @@ export function EtykietyApp({
   priceFonts: PriceFonts;
 }) {
   const [active, setActive] = useState<AppModule>(initialModule);
+  const [polishName, setPolishName] = useState("");
+  const [priceInput, setPriceInput] = useState("");
+  const [bigPriceName, setBigPriceName] = useState("");
+  const [bigPriceInput, setBigPriceInput] = useState("");
+  const lastCopied = useRef<{ name: string; price: string } | null>(null);
   const [labelsVisited, setLabelsVisited] = useState(
     initialModule === "etykiety",
   );
-  function selectModule(module: AppModule) {
+  const selectModule = useCallback((module: AppModule) => {
+    if (active === "etykiety" && module === "cena" && polishName.trim()) {
+      const name = polishName.trim();
+      if (lastCopied.current?.name !== name || lastCopied.current?.price !== priceInput) {
+        setBigPriceName(name);
+        setBigPriceInput(priceInput);
+        lastCopied.current = { name, price: priceInput };
+      }
+    }
     setActive(module);
     if (module === "etykiety") setLabelsVisited(true);
     delete document.documentElement.dataset.print;
-  }
+  }, [active, polishName, priceInput]);
   useEffect(() => {
     const onPop = () =>
       selectModule(
@@ -1021,7 +1042,7 @@ export function EtykietyApp({
       );
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
-  }, []);
+  }, [selectModule]);
   function navigate(module: AppModule) {
     selectModule(module);
     const url = new URL(window.location.href);
@@ -1071,10 +1092,23 @@ export function EtykietyApp({
         </div>
       </header>
       <div className="module-panel" hidden={active !== "etykiety"}>
-        {labelsVisited ? <LabelsModule /> : null}
+        {labelsVisited ? (
+          <LabelsModule
+            polishName={polishName}
+            setPolishName={setPolishName}
+            priceInput={priceInput}
+            setPriceInput={setPriceInput}
+          />
+        ) : null}
       </div>
       <div className="module-panel" hidden={active !== "cena"}>
-        <BigPriceModule fonts={priceFonts} />
+        <BigPriceModule
+          fonts={priceFonts}
+          name={bigPriceName}
+          setName={setBigPriceName}
+          price={bigPriceInput}
+          setPrice={setBigPriceInput}
+        />
       </div>
     </>
   );
