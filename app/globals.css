@@ -637,8 +637,8 @@
 
 .module-panel[hidden] { display: none !important; }
 .big-price-card {
-  width: 148mm;
-  height: 210mm;
+  width: 210mm;
+  height: 148mm;
   flex: none;
   overflow: hidden;
   background: #fff;
@@ -649,4 +649,37 @@
 .big-price-card svg { display: block; }
 @media print {
   .big-price-card { break-inside: avoid; page-break-inside: avoid; }
+}
+
+/* Price cards use their own sheet so plant labels retain their print layout. */
+.big-price-sheet-a4 {
+  width: 210mm;
+  height: 297mm;
+  display: grid;
+  grid-template-rows: 148mm 1mm 148mm;
+  background: #fff;
+}
+.big-price-cut-gutter {
+  position: relative;
+  background: #fff;
+}
+.big-price-cut-gutter::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 5mm;
+  right: 5mm;
+  border-top: 0.35mm dashed #181818;
+}
+@page big-price-a5 {
+  size: 210mm 148mm;
+  margin: 0;
+}
+@page big-price-a4 {
+  size: 210mm 297mm;
+  margin: 0;
+}
+@media print {
+  .big-price-print-a5 { page: big-price-a5; width: 210mm; height: 148mm; }
+  .big-price-print-a4 { page: big-price-a4; width: 210mm; height: 297mm; }
 }

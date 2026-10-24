@@ -573,11 +573,11 @@ export async function downloadPriceCardPdf(
     (isDisplay ? display : bold).widthOfTextAtSize(value, size),
   );
   const page = pdf.addPage([
-    mode === "a5" ? PRICE_WIDTH : mm(297),
-    PRICE_HEIGHT,
+    PRICE_WIDTH,
+    mode === "a5" ? PRICE_HEIGHT : mm(297),
   ]);
   const ink = priceRgb(0.094, 0.094, 0.094);
-  function draw(offset: number) {
+  function draw(offsetTop: number) {
     const text = (
       value: string,
       x: number,
@@ -587,15 +587,15 @@ export async function downloadPriceCardPdf(
       color = ink,
     ) =>
       page.drawText(value, {
-        x: offset + x,
-        y: PRICE_HEIGHT - top,
+        x,
+        y: page.getHeight() - offsetTop - top,
         size,
         font,
         color,
       });
     page.drawRectangle({
-      x: offset + PRICE_LEFT,
-      y: PRICE_HEIGHT - mm(16),
+      x: PRICE_LEFT,
+      y: page.getHeight() - offsetTop - mm(16),
       width: PRICE_CONTENT,
       height: mm(10),
       color: ink,
@@ -609,15 +609,15 @@ export async function downloadPriceCardPdf(
     const place = "Kłodzko · od 1991 r.";
     text(
       place,
-      mm(137) - bold.widthOfTextAtSize(place, 8),
+      PRICE_WIDTH - mm(11) - bold.widthOfTextAtSize(place, 8),
       mm(12.7),
       8,
       bold,
       priceRgb(1, 1, 1),
     );
     page.drawLine({
-      start: { x: offset + PRICE_LEFT, y: PRICE_HEIGHT - mm(19) },
-      end: { x: offset + PRICE_LEFT + PRICE_CONTENT, y: PRICE_HEIGHT - mm(19) },
+      start: { x: PRICE_LEFT, y: page.getHeight() - offsetTop - mm(19) },
+      end: { x: PRICE_LEFT + PRICE_CONTENT, y: page.getHeight() - offsetTop - mm(19) },
       thickness: PRICE_MM,
       color: ink,
     });
@@ -648,8 +648,8 @@ export async function downloadPriceCardPdf(
   if (mode === "a4") {
     draw(mm(149));
     page.drawLine({
-      start: { x: mm(148.5), y: mm(5) },
-      end: { x: mm(148.5), y: mm(205) },
+      start: { x: mm(5), y: mm(148.5) },
+      end: { x: mm(205), y: mm(148.5) },
       thickness: mm(0.35),
       dashArray: [3, 2],
       color: ink,

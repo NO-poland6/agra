@@ -12,11 +12,11 @@ export type PriceLayout = {
 };
 
 export const PRICE_MM = 72 / 25.4;
-export const PRICE_WIDTH = 148 * PRICE_MM;
-export const PRICE_HEIGHT = 210 * PRICE_MM;
+export const PRICE_WIDTH = 210 * PRICE_MM;
+export const PRICE_HEIGHT = 148 * PRICE_MM;
 export const PRICE_LEFT = 7 * PRICE_MM;
-export const PRICE_CONTENT = 134 * PRICE_MM;
-export const PRICE_NAME_TOP = 30 * PRICE_MM;
+export const PRICE_CONTENT = PRICE_WIDTH - 2 * PRICE_LEFT;
+export const PRICE_NAME_TOP = 26 * PRICE_MM;
 
 // Shared by SVG preview, browser print and PDF; all measurements are in points.
 export function priceCardLayout(
@@ -24,7 +24,7 @@ export function priceCardLayout(
   measure: (text: string, size: number, display: boolean) => number,
 ): PriceLayout {
   const name = card.name.replace(/\s+/g, " ").trim() || "Nazwa rośliny";
-  let nameSize = 40;
+  let nameSize = 42;
   let lines: string[] = [];
   for (; nameSize >= 1; nameSize -= 0.5) {
     lines = [];
@@ -48,13 +48,12 @@ export function priceCardLayout(
       }
     }
     if (line) lines.push(line);
-    if (lines.length <= 3 && lines.length * nameSize * 1.12 <= 60 * PRICE_MM)
-      break;
+    if (lines.length <= 2) break;
   }
   const amount = formatPriceParts(card.price).amount;
   const gap = 3 * PRICE_MM;
   const priceSize = Math.min(
-    145,
+    priceAreaHeight(nameSize, lines.length) / 0.96,
     (PRICE_CONTENT - gap) /
       (measure(amount, 1, true) + measure("zł", 0.24, false)),
   );
@@ -73,14 +72,19 @@ export function priceCardLayout(
   };
 }
 
+const nameBottom = (nameSize: number, lineCount: number) =>
+  PRICE_NAME_TOP + nameSize * (0.9 + (lineCount - 1) * 1.12 + 0.25);
+
+const priceAreaTop = (nameSize: number, lineCount: number) =>
+  nameBottom(nameSize, lineCount) + 6 * PRICE_MM;
+const priceAreaBottom = PRICE_HEIGHT - 8 * PRICE_MM;
+const priceAreaHeight = (nameSize: number, lineCount: number) =>
+  priceAreaBottom - priceAreaTop(nameSize, lineCount);
+
+// Reserve the display font's ascenders and comma descender when fitting vertically.
 export const priceBaseline = (
   size: number,
   nameSize: number,
   lineCount: number,
-) => {
-  const nameBottom =
-    PRICE_NAME_TOP + nameSize * (0.9 + (lineCount - 1) * 1.12 + 0.25);
-  return (
-    (nameBottom + 10 * PRICE_MM + PRICE_HEIGHT - 7 * PRICE_MM) / 2 + size * 0.34
-  );
-};
+) =>
+  (priceAreaTop(nameSize, lineCount) + priceAreaBottom) / 2 + size * 0.26;

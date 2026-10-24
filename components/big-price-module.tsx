@@ -68,7 +68,7 @@ function PriceCard({ card, ready }: { card: PriceCardModel; ready: boolean }) {
             AGRA PSK
           </text>
           <text
-            x={137 * PRICE_MM}
+            x={PRICE_WIDTH - 11 * PRICE_MM}
             y={12.7 * PRICE_MM}
             fill="white"
             fontSize="8"
@@ -131,9 +131,9 @@ function PriceSheet({
   twoUp: boolean;
 }) {
   return twoUp ? (
-    <div className="sheet-a4-row">
+    <div className="big-price-sheet-a4">
       <PriceCard card={card} ready={ready} />
-      <div className="cut-gutter" aria-hidden />
+      <div className="big-price-cut-gutter" aria-hidden />
       <PriceCard card={card} ready={ready} />
     </div>
   ) : (
@@ -190,8 +190,8 @@ export function BigPriceModule({
     style.id = "print-page-size";
     style.textContent =
       preview === "a4"
-        ? "@page { size: 297mm 210mm; margin: 0; }"
-        : "@page { size: 148mm 210mm; margin: 0; }";
+        ? "@page { size: 210mm 297mm; margin: 0; }"
+        : "@page { size: 210mm 148mm; margin: 0; }";
     document.head.appendChild(style);
     document.documentElement.dataset.print = preview;
     window.print();
@@ -228,7 +228,7 @@ export function BigPriceModule({
             <div>
               <h2 className="font-display text-xl">Duża cena</h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Nazwa i cena. Gotowe do wydruku na dużej karcie A5.
+                Nazwa i cena. Gotowe do wydruku na poziomej karcie A5.
               </p>
             </div>
             <div className="grid gap-1.5">
@@ -351,7 +351,7 @@ export function BigPriceModule({
             </div>
           </div>
           <div className="rounded-xl bg-[#d5cec1] p-3 sm:p-5">
-            <ScaledFrame widthMm={preview === "a5" ? 148 : 297} heightMm={210}>
+            <ScaledFrame widthMm={210} heightMm={preview === "a5" ? 148 : 297}>
               <div className="shadow-[0_12px_28px_rgba(40,32,20,0.18)]">
                 <PriceSheet
                   card={card}
@@ -363,15 +363,15 @@ export function BigPriceModule({
           </div>
           <p className="mt-2 text-xs text-muted-foreground">
             {preview === "a5"
-              ? "Karta A5 · 148 × 210 mm. Podgląd aktualizuje się podczas pisania."
-              : "A4 poziomo · dwie kopie karty i linia cięcia pośrodku."}
+              ? "Karta A5 poziomo · 210 × 148 mm. Podgląd aktualizuje się podczas pisania."
+              : "A4 pionowo · dwie karty jedna pod drugą i linia cięcia pośrodku."}
           </p>
         </section>
       </main>
-      <div className="print-only sheet-a5">
+      <div className="print-only sheet-a5 big-price-print-a5">
         <PriceSheet card={card} ready={ready} twoUp={false} />
       </div>
-      <div className="print-only sheet-a4">
+      <div className="print-only sheet-a4 big-price-print-a4">
         <PriceSheet card={card} ready={ready} twoUp />
       </div>
     </>
