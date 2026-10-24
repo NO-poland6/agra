@@ -1,6 +1,7 @@
+import { infoCardLayout, infoSheetSize, type InfoCardModel } from "./info-card";
 import { PDFDocument as PricePDFDocument, rgb as priceRgb } from "pdf-lib";
 import priceFontkit from "@pdf-lib/fontkit";
-import { PRICE_CONTENT, PRICE_HEIGHT, PRICE_LEFT, PRICE_MM, PRICE_NAME_TOP, PRICE_WIDTH, priceBaseline, priceCardLayout, type PriceCardModel, type PriceFonts } from "./price-card";
+import { PRICE_CONTENT, PRICE_LEFT, PRICE_MM, PRICE_NAME_TOP, PRICE_WIDTH, priceBaseline, priceCardLayout, type PriceCardModel, type PriceFonts } from "./price-card";
 import { fileSlug } from "./normalize";
 import { formatPriceParts } from "./format";
 import {
@@ -556,8 +557,8 @@ export async function downloadCardPdf(card: CardModel, mode: "a5" | "a4", varian
 
 
 // Font bytes arrive with the page, so this module never fetches fonts or images.
-export async function downloadPriceCardPdf(
-  card: PriceCardModel,
+async function downloadSignPdf(
+  card: PriceCardModel | InfoCardModel,
   mode: "a5" | "a4",
   fontData: PriceFonts,
 ) {
@@ -569,13 +570,19 @@ export async function downloadPriceCardPdf(
     pdf.embedFont(decode(fontData.bold), { subset: true }),
     pdf.embedFont(decode(fontData.display), { subset: true }),
   ]);
-  const layout = priceCardLayout(card, (value, size, isDisplay) =>
-    (isDisplay ? display : bold).widthOfTextAtSize(value, size),
-  );
-  const page = pdf.addPage([
-    PRICE_WIDTH,
-    mode === "a5" ? PRICE_HEIGHT : mm(297),
-  ]);
+  const layout =
+    "price" in card
+      ? priceCardLayout(card, (value, size, isDisplay) =>
+          (isDisplay ? display : bold).widthOfTextAtSize(value, size),
+        )
+      : null;
+  const infoLines =
+    "text" in card
+      ? infoCardLayout(card, (value, size, title) =>
+          (title ? display : bold).widthOfTextAtSize(value, size),
+        )
+      : null;
+  const page = pdf.addPage([...infoSheetSize(mode)]);
   const ink = priceRgb(0.094, 0.094, 0.094);
   function draw(offsetTop: number) {
     const text = (
@@ -617,32 +624,49 @@ export async function downloadPriceCardPdf(
     );
     page.drawLine({
       start: { x: PRICE_LEFT, y: page.getHeight() - offsetTop - mm(19) },
-      end: { x: PRICE_LEFT + PRICE_CONTENT, y: page.getHeight() - offsetTop - mm(19) },
+      end: {
+        x: PRICE_LEFT + PRICE_CONTENT,
+        y: page.getHeight() - offsetTop - mm(19),
+      },
       thickness: PRICE_MM,
       color: ink,
     });
-    layout.lines.forEach((line, index) =>
+    if (infoLines) {
+      infoLines.forEach((line) => {
+        if (line.text)
+          text(
+            line.text,
+            line.x,
+            line.baseline,
+            line.size,
+            line.title ? display : bold,
+          );
+      });
+    }
+    if (layout) {
+      layout.lines.forEach((line, index) =>
+        text(
+          line,
+          PRICE_LEFT,
+          PRICE_NAME_TOP + layout.nameSize * (0.9 + index * 1.12),
+          layout.nameSize,
+          display,
+        ),
+      );
       text(
-        line,
-        PRICE_LEFT,
-        PRICE_NAME_TOP + layout.nameSize * (0.9 + index * 1.12),
-        layout.nameSize,
+        layout.amount,
+        layout.priceX,
+        priceBaseline(layout.priceSize, layout.nameSize, layout.lines.length),
+        layout.priceSize,
         display,
-      ),
-    );
-    text(
-      layout.amount,
-      layout.priceX,
-      priceBaseline(layout.priceSize, layout.nameSize, layout.lines.length),
-      layout.priceSize,
-      display,
-    );
-    text(
-      "zł",
-      layout.currencyX,
-      priceBaseline(layout.priceSize, layout.nameSize, layout.lines.length),
-      layout.priceSize * 0.24,
-    );
+      );
+      text(
+        "zł",
+        layout.currencyX,
+        priceBaseline(layout.priceSize, layout.nameSize, layout.lines.length),
+        layout.priceSize * 0.24,
+      );
+    }
   }
   draw(0);
   if (mode === "a4") {
@@ -663,7 +687,25 @@ export async function downloadPriceCardPdf(
   );
   const link = document.createElement("a");
   link.href = url;
-  link.download = `duza-cena-${fileSlug(card.name)}-${mode}.pdf`;
+  link.download =
+    "text" in card
+      ? `informacja-${fileSlug(card.title || "agra")}-${mode}.pdf`
+      : `duza-cena-${fileSlug(card.name)}-${mode}.pdf`;
   link.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+export function downloadPriceCardPdf(
+  card: PriceCardModel,
+  mode: "a5" | "a4",
+  fonts: PriceFonts,
+) {
+  return downloadSignPdf(card, mode, fonts);
+}
+export function downloadInfoCardPdf(
+  card: InfoCardModel,
+  mode: "a5" | "a4",
+  fonts: PriceFonts,
+) {
+  return downloadSignPdf(card, mode, fonts);
 }

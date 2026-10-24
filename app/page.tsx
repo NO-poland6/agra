@@ -11,7 +11,13 @@ async function ModuleApp({ searchParams }: PageProps<"/">) {
   ]);
   return (
     <EtykietyApp
-      initialModule={query.modul === "cena" ? "cena" : "etykiety"}
+      initialModule={
+        query.modul === "info"
+          ? "info"
+          : query.modul === "cena"
+            ? "cena"
+            : "etykiety"
+      }
       priceFonts={{
         bold: bold.toString("base64"),
         display: display.toString("base64"),

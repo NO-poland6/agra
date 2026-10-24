@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { flushSync } from "react-dom";
 import { FileDown, Printer, Sprout } from "lucide-react";
+import { InfoModule } from "@/components/info-module";
 import { BigPriceModule } from "@/components/big-price-module";
 import type { PriceFonts } from "@/lib/price-card";
 import { Button } from "@/components/ui/button";
@@ -994,7 +995,7 @@ function LabelsModule({
 }
 
 
-type AppModule = "etykiety" | "cena";
+type AppModule = "etykiety" | "cena" | "info";
 
 export function EtykietyApp({
   initialModule,
@@ -1006,9 +1007,14 @@ export function EtykietyApp({
   const [active, setActive] = useState<AppModule>(initialModule);
   const [labelsPreview, setLabelsPreview] = useState<"a5" | "a4">("a5");
   const [pricePreview, setPricePreview] = useState<"a5" | "a4">("a5");
-  const [pageWidth, pageHeight] = active === "etykiety"
-    ? [labelsPreview === "a4" ? 297 : 148, 210]
-    : [210, pricePreview === "a4" ? 297 : 148];
+  const [infoPreview, setInfoPreview] = useState<"a5" | "a4">("a5");
+  const [pageWidth, pageHeight] =
+    active === "etykiety"
+      ? [labelsPreview === "a4" ? 297 : 148, 210]
+      : [
+          210,
+          (active === "info" ? infoPreview : pricePreview) === "a4" ? 297 : 148,
+        ];
   const [polishName, setPolishName] = useState("");
   const [priceInput, setPriceInput] = useState("");
   const [bigPriceName, setBigPriceName] = useState("");
@@ -1017,24 +1023,32 @@ export function EtykietyApp({
   const [labelsVisited, setLabelsVisited] = useState(
     initialModule === "etykiety",
   );
-  const selectModule = useCallback((module: AppModule) => {
-    if (active === "etykiety" && module === "cena" && polishName.trim()) {
-      const name = polishName.trim();
-      if (lastCopied.current?.name !== name || lastCopied.current?.price !== priceInput) {
-        setBigPriceName(name);
-        setBigPriceInput(priceInput);
-        lastCopied.current = { name, price: priceInput };
+  const selectModule = useCallback(
+    (module: AppModule) => {
+      if (active === "etykiety" && module === "cena" && polishName.trim()) {
+        const name = polishName.trim();
+        if (
+          lastCopied.current?.name !== name ||
+          lastCopied.current?.price !== priceInput
+        ) {
+          setBigPriceName(name);
+          setBigPriceInput(priceInput);
+          lastCopied.current = { name, price: priceInput };
+        }
       }
-    }
-    setActive(module);
-    if (module === "etykiety") setLabelsVisited(true);
-  }, [active, polishName, priceInput]);
+      setActive(module);
+      if (module === "etykiety") setLabelsVisited(true);
+    },
+    [active, polishName, priceInput],
+  );
   useEffect(() => {
     const onPop = () =>
       selectModule(
-        new URLSearchParams(window.location.search).get("modul") === "cena"
-          ? "cena"
-          : "etykiety",
+        new URLSearchParams(window.location.search).get("modul") === "info"
+          ? "info"
+          : new URLSearchParams(window.location.search).get("modul") === "cena"
+            ? "cena"
+            : "etykiety",
       );
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
@@ -1042,7 +1056,7 @@ export function EtykietyApp({
   function navigate(module: AppModule) {
     selectModule(module);
     const url = new URL(window.location.href);
-    if (module === "cena") url.searchParams.set("modul", "cena");
+    if (module !== "etykiety") url.searchParams.set("modul", module);
     else url.searchParams.delete("modul");
     window.history.pushState(null, "", url);
   }
@@ -1079,6 +1093,7 @@ export function EtykietyApp({
               [
                 ["etykiety", "Etykiety roślin"],
                 ["cena", "Duża cena"],
+                ["info", "Informacja"],
               ] as const
             ).map(([module, label]) => (
               <Button
@@ -1094,7 +1109,11 @@ export function EtykietyApp({
           </nav>
         </div>
       </header>
-      <div className="module-panel" data-print-mode={labelsPreview} hidden={active !== "etykiety"}>
+      <div
+        className="module-panel"
+        data-print-mode={labelsPreview}
+        hidden={active !== "etykiety"}
+      >
         {labelsVisited ? (
           <LabelsModule
             polishName={polishName}
@@ -1106,7 +1125,11 @@ export function EtykietyApp({
           />
         ) : null}
       </div>
-      <div className="module-panel" data-print-mode={pricePreview} hidden={active !== "cena"}>
+      <div
+        className="module-panel"
+        data-print-mode={pricePreview}
+        hidden={active !== "cena"}
+      >
         <BigPriceModule
           fonts={priceFonts}
           name={bigPriceName}
@@ -1115,6 +1138,17 @@ export function EtykietyApp({
           setPrice={setBigPriceInput}
           preview={pricePreview}
           setPreview={setPricePreview}
+        />
+      </div>
+      <div
+        className="module-panel"
+        data-print-mode={infoPreview}
+        hidden={active !== "info"}
+      >
+        <InfoModule
+          fonts={priceFonts}
+          preview={infoPreview}
+          setPreview={setInfoPreview}
         />
       </div>
     </>

@@ -24,6 +24,43 @@ import {
 const FONT_DISPLAY = "AgraPriceDisplay";
 const FONT_SANS = "AgraPriceSans";
 
+export function PriceCardHeader() {
+  return (
+    <>
+      <rect
+        x={PRICE_LEFT}
+        y={6 * PRICE_MM}
+        width={PRICE_CONTENT}
+        height={10 * PRICE_MM}
+        fill="#181818"
+      />
+      <text
+        x={11 * PRICE_MM}
+        y={12.7 * PRICE_MM}
+        fill="white"
+        fontSize="12"
+        letterSpacing="1.5"
+      >
+        AGRA PSK
+      </text>
+      <text
+        x={PRICE_WIDTH - 11 * PRICE_MM}
+        y={12.7 * PRICE_MM}
+        fill="white"
+        fontSize="8"
+        textAnchor="end"
+      >
+        Kłodzko · od 1991 r.
+      </text>
+      <path
+        d={`M ${PRICE_LEFT} ${19 * PRICE_MM} h ${PRICE_CONTENT}`}
+        stroke="#181818"
+        strokeWidth={PRICE_MM}
+      />
+    </>
+  );
+}
+
 function PriceCard({ card, ready }: { card: PriceCardModel; ready: boolean }) {
   const context =
     typeof document !== "undefined" && ready
@@ -51,36 +88,7 @@ function PriceCard({ card, ready }: { card: PriceCardModel; ready: boolean }) {
       >
         <rect width={PRICE_WIDTH} height={PRICE_HEIGHT} fill="white" />
         <g fontFamily={FONT_SANS} fill="#181818">
-          <rect
-            x={PRICE_LEFT}
-            y={6 * PRICE_MM}
-            width={PRICE_CONTENT}
-            height={10 * PRICE_MM}
-            fill="#181818"
-          />
-          <text
-            x={11 * PRICE_MM}
-            y={12.7 * PRICE_MM}
-            fill="white"
-            fontSize="12"
-            letterSpacing="1.5"
-          >
-            AGRA PSK
-          </text>
-          <text
-            x={PRICE_WIDTH - 11 * PRICE_MM}
-            y={12.7 * PRICE_MM}
-            fill="white"
-            fontSize="8"
-            textAnchor="end"
-          >
-            Kłodzko · od 1991 r.
-          </text>
-          <path
-            d={`M ${PRICE_LEFT} ${19 * PRICE_MM} h ${PRICE_CONTENT}`}
-            stroke="#181818"
-            strokeWidth={PRICE_MM}
-          />
+          <PriceCardHeader />
           <g fontFamily={FONT_DISPLAY}>
             {layout.lines.map((line, index) => (
               <text
